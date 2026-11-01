@@ -134,20 +134,30 @@ function Shell({
         <RailContent items={items} onNavigate={() => setDrawer(false)} />
       </aside>
 
-      {drawer && (
+      {/* 移动端抽屉：常驻渲染，滑入/滑出过渡 */}
+      <div
+        className="md:hidden fixed inset-0 z-40"
+        style={{ pointerEvents: drawer ? 'auto' : 'none' }}
+      >
         <div
-          className="md:hidden fixed inset-0 z-40"
-          style={{ background: 'var(--ui-scrim)' }}
+          className="absolute inset-0 transition-opacity duration-300 ease-out"
+          style={{
+            background: 'var(--ui-scrim)',
+            opacity: drawer ? 1 : 0,
+          }}
           onClick={() => setDrawer(false)}
+        />
+        <aside
+          className="absolute inset-y-0 left-0 w-[248px] bg-surface-container-lowest border-r border-outline-variant flex flex-col shadow-xl transition-transform duration-300 ease-out"
+          style={{
+            borderColor: 'var(--ui-outline-variant)',
+            transform: drawer ? 'translateX(0)' : 'translateX(-100%)',
+          }}
+          onClick={(e) => e.stopPropagation()}
         >
-          <aside
-            className="absolute inset-y-0 left-0 w-[248px] bg-surface-container-lowest border-r border-outline-variant flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <RailContent items={items} onNavigate={() => setDrawer(false)} />
-          </aside>
-        </div>
-      )}
+          <RailContent items={items} onNavigate={() => setDrawer(false)} />
+        </aside>
+      </div>
 
       <div className="md:ml-[248px]">
         <header
