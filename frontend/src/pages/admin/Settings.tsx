@@ -7,6 +7,8 @@ interface Settings {
   registration_enabled: boolean
   max_subdomains_per_user: number
   max_applications_per_month: number
+  default_auto_approve: boolean
+  default_zone_ttl: number
 }
 
 export default function AdminSettings() {
@@ -16,6 +18,8 @@ export default function AdminSettings() {
   const [regEnabled, setRegEnabled] = useState(false)
   const [maxSub, setMaxSub] = useState(10)
   const [maxMonth, setMaxMonth] = useState(30)
+  const [dAuto, setDAuto] = useState(false)
+  const [dTtl, setDTtl] = useState(300)
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
@@ -25,6 +29,8 @@ export default function AdminSettings() {
         setRegEnabled(s.registration_enabled)
         setMaxSub(s.max_subdomains_per_user)
         setMaxMonth(s.max_applications_per_month)
+        setDAuto(s.default_auto_approve)
+        setDTtl(s.default_zone_ttl)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -37,6 +43,8 @@ export default function AdminSettings() {
         registration_enabled: regEnabled,
         max_subdomains_per_user: Number(maxSub),
         max_applications_per_month: Number(maxMonth),
+        default_auto_approve: dAuto,
+        default_zone_ttl: Number(dTtl),
       })
       toast('设置已保存', 'success')
       setDirty(false)
@@ -79,6 +87,37 @@ export default function AdminSettings() {
               setDirty(true)
             }}
           />
+        </div>
+        <hr style={{ borderColor: 'var(--ui-outline-variant)' }} />
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm">
+            <div className="font-medium text-on-surface">新根域名默认自动审批</div>
+            <div className="text-xs text-on-surface-variant mt-0.5">
+              添加根域名时的默认值；每个根域名还可在「根域名管理」中单独开关。
+            </div>
+          </div>
+          <Switch
+            checked={dAuto}
+            onChange={(v) => {
+              setDAuto(v)
+              setDirty(true)
+            }}
+          />
+        </div>
+        <div>
+          <Input
+            label="新根域名默认 TTL（秒）"
+            type="number"
+            className="w-40"
+            value={dTtl}
+            onChange={(v) => {
+              setDTtl(Number(v))
+              setDirty(true)
+            }}
+          />
+          <div className="text-xs text-on-surface-variant mt-1">
+            新增根域名时解析记录的默认 TTL（60-86400），每个根域名可在编辑中单独修改。
+          </div>
         </div>
         <hr style={{ borderColor: 'var(--ui-outline-variant)' }} />
         <div>

@@ -113,6 +113,13 @@ adminRoutes.post('/zones', csrfMiddleware, async (c) => {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
   }
   const { root_domain } = parsed.data
+  // 全局默认值：新根域名的自动审批 / 默认 TTL（系统设置中可配置）
+  const [dAuto, dTtl] = await Promise.all([
+    db(c.env).get<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'default_auto_approve'),
+    db(c.env).get<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'default_zone_ttl'),
+  ])
+  const autoApprove = parsed.data.auto_approve ?? dAuto?.value === '1'
+  const defaultTtl = parsed.data.default_ttl ?? (Number(dTtl?.value) || 300)
   const exist = await getZoneByRootDomain(db(c.env), root_domain)
   if (exist) {
     return fail(c, 'ZONE_EXISTS', '该根域名已存在', 409)
@@ -146,8 +153,8 @@ adminRoutes.post('/zones', csrfMiddleware, async (c) => {
     zone.id,
     (zone as any).account?.id ?? c.env.CF_ACCOUNT_ID,
     parsed.data.enabled ? 1 : 0,
-    parsed.data.auto_approve ? 1 : 0,
-    parsed.data.default_ttl,
+    autoApprove ? 1 : 0,
+    defaultTtl,
     parsed.data.allowed_types,
     parsed.data.reserved_words,
     parsed.data.note,
@@ -527,6 +534,8 @@ adminRoutes.get('/settings', async (c) => {
     ['registration_enabled', '0'],
     ['max_subdomains_per_user', '10'],
     ['max_applications_per_month', '30'],
+    ['default_auto_approve', '0'],
+    ['default_zone_ttl', '300'],
   ] as const
   const out: Record<string, string | number | boolean> = {}
   for (const [key, def] of keys) {
@@ -537,8 +546,10 @@ adminRoutes.get('/settings', async (c) => {
     out[key] = row?.value ?? def
   }
   out.registration_enabled = out.registration_enabled === '1'
+  out.default_auto_approve = out.default_auto_approve === '1'
   out.max_subdomains_per_user = Number(out.max_subdomains_per_user)
   out.max_applications_per_month = Number(out.max_applications_per_month)
+  out.default_zone_ttl = Number(out.default_zone_ttl)
   return ok(c, out)
 })
 
@@ -569,6 +580,12 @@ adminRoutes.put('/settings', csrfMiddleware, async (c) => {
       String(parsed.data.max_applications_per_month),
       `每月申请上限=${parsed.data.max_applications_per_month}`,
     ])
+  }
+  if (parsed.data.default_auto_approve !== undefined) {
+    updates.push(['default_auto_approve', parsed.data.default_auto_approve ? '1' : '0', `新根域名默认自动审批=${parsed.data.default_auto_approve ? '开' : '关'}`])
+  }
+  if (parsed.data.default_zone_ttl !== undefined) {
+    updates.push(['default_zone_ttl', String(parsed.data.default_zone_ttl), `新根域名默认TTL=${parsed.data.default_zone_ttl}`])
   }
   for (const [key, value, detail] of updates) {
     await db(c.env).run(

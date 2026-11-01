@@ -278,12 +278,14 @@ export function Switch({
   checked,
   onChange,
   disabled,
+  label,
 }: {
   checked: boolean
   onChange: (v: boolean) => void
   disabled?: boolean
+  label?: string
 }) {
-  return (
+  const sw = (
     <button
       type="button"
       role="switch"
@@ -294,6 +296,13 @@ export function Switch({
     >
       <span className="ui-switch-thumb" />
     </button>
+  )
+  if (label === undefined) return sw
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-on-surface select-none">
+      {sw}
+      <span>{label}</span>
+    </span>
   )
 }
 

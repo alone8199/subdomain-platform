@@ -87,6 +87,8 @@ const sessions = new Map() // token -> { username, expiresAt }
 let registrationEnabled = false
 let maxSubdomainsPerUser = 10
 let maxApplicationsPerMonth = 30
+let defaultAutoApprove = false
+let defaultZoneTtl = 300
 
 function mkSub(prefix, root, zoneId, type, target, userId, status, createdAt, expiresAt, rejectReason = null, errorMessage = null) {
   const zone = zones.find((z) => z.id === zoneId)
@@ -358,7 +360,7 @@ async function handleApi(req, res, url) {
       if (zones.some((z) => z.root_domain === rd)) return fail(res, 'EXISTS', '该根域名已存在', 409)
       const z = {
         id: 'z' + rand(4), root_domain: rd, cloudflare_zone_id: zid(), cloudflare_account_id: 'acct_demo_001',
-        enabled: 1, auto_approve: 0, default_ttl: 3600, allowed_types: 'CNAME,A,AAAA,TXT',
+        enabled: 1, auto_approve: b.auto_approve ? 1 : (defaultAutoApprove ? 1 : 0), default_ttl: defaultZoneTtl, allowed_types: 'CNAME,A,AAAA,TXT',
         reserved_words: 'www,mail,api,admin,root,ns1,ns2,ftp,webmail,ns,mx', note: '',
         created_at: now(), updated_at: now(),
       }
@@ -484,13 +486,15 @@ async function handleApi(req, res, url) {
         return ok(res, sanitizeUser(u))
       }
     }
-    if (seg[2] === 'settings' && method === 'GET') return ok(res, { registration_enabled: registrationEnabled, max_subdomains_per_user: maxSubdomainsPerUser, max_applications_per_month: maxApplicationsPerMonth })
+    if (seg[2] === 'settings' && method === 'GET') return ok(res, { registration_enabled: registrationEnabled, max_subdomains_per_user: maxSubdomainsPerUser, max_applications_per_month: maxApplicationsPerMonth, default_auto_approve: defaultAutoApprove, default_zone_ttl: defaultZoneTtl })
     if (seg[2] === 'settings' && method === 'PUT') {
       const b = await readBody(req)
       if (b.registration_enabled != null) registrationEnabled = !!b.registration_enabled
+      if (b.default_auto_approve != null) defaultAutoApprove = !!b.default_auto_approve
+      if (b.default_zone_ttl != null) defaultZoneTtl = Number(b.default_zone_ttl) || 300
       if (b.max_subdomains_per_user != null) maxSubdomainsPerUser = Number(b.max_subdomains_per_user) || 10
       if (b.max_applications_per_month != null) maxApplicationsPerMonth = Number(b.max_applications_per_month) || 30
-      return ok(res, { registration_enabled: registrationEnabled, max_subdomains_per_user: maxSubdomainsPerUser, max_applications_per_month: maxApplicationsPerMonth })
+      return ok(res, { registration_enabled: registrationEnabled, max_subdomains_per_user: maxSubdomainsPerUser, max_applications_per_month: maxApplicationsPerMonth, default_auto_approve: defaultAutoApprove, default_zone_ttl: defaultZoneTtl })
     }
     if (seg[2] === 'audit' && method === 'GET') {
       let list = [...audit]

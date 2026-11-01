@@ -5,13 +5,13 @@ import {
   PageHeader,
   Spinner,
   EmptyState,
-  Badge,
   Modal,
   ConfirmButton,
   FieldError,
   Button,
   Input,
   Checkbox,
+  Switch,
 } from '../../components/ui'
 import type { Zone } from '../../types'
 
@@ -27,6 +27,7 @@ export default function AdminZones() {
   // 新增表单
   const [showAdd, setShowAdd] = useState(false)
   const [rootDomain, setRootDomain] = useState('')
+  const [addAuto, setAddAuto] = useState(false)
   const [addErr, setAddErr] = useState('')
 
   // 编辑表单
@@ -55,10 +56,11 @@ export default function AdminZones() {
       return
     }
     try {
-      await api.post('/api/admin/zones', { root_domain: rootDomain.trim().toLowerCase() })
+      await api.post('/api/admin/zones', { root_domain: rootDomain.trim().toLowerCase(), auto_approve: addAuto })
       toast('根域名已添加并校验', 'success')
       setShowAdd(false)
       setRootDomain('')
+      setAddAuto(false)
       load()
     } catch (e) {
       if (e instanceof ApiClientError) setAddErr(e.message)
@@ -71,6 +73,7 @@ export default function AdminZones() {
     try {
       await api.put(`/api/admin/zones/${edit.id}`, {
         enabled: !!edit.enabled,
+        auto_approve: !!edit.auto_approve,
         default_ttl: edit.default_ttl,
         allowed_types: edit.allowed_types,
         reserved_words: edit.reserved_words,
@@ -81,6 +84,18 @@ export default function AdminZones() {
       load()
     } catch (e) {
       if (e instanceof ApiClientError) toast(e.message, 'error')
+    }
+  }
+
+  const patchZone = async (id: string, body: Record<string, unknown>) => {
+    try {
+      await api.put(`/api/admin/zones/${id}`, body)
+      setZones((zs) => zs.map((z) => (z.id === id ? { ...z, ...body } as Zone : z)))
+    } catch (e) {
+      if (e instanceof ApiClientError) {
+        toast(e.message, 'error')
+        load()
+      }
     }
   }
 
@@ -143,9 +158,17 @@ export default function AdminZones() {
                     <td className="td font-medium">{z.root_domain}</td>
                     <td className="td text-xs text-gray-500">{zoneIdShort(z.cloudflare_zone_id)}</td>
                     <td className="td">
-                      {z.enabled ? <Badge value="active" /> : <Badge value="disabled" />}
+                      <Switch
+                        checked={!!z.enabled}
+                        onChange={(v) => patchZone(z.id, { enabled: v })}
+                      />
                     </td>
-                    <td className="td">{z.auto_approve ? '开' : '关'}</td>
+                    <td className="td">
+                      <Switch
+                        checked={!!z.auto_approve}
+                        onChange={(v) => patchZone(z.id, { auto_approve: v })}
+                      />
+                    </td>
                     <td className="td">{z.summary?.total ?? 0}</td>
                     <td className="td">{z.summary?.active ?? 0}</td>
                     <td className="td">{z.summary?.pending ?? 0}</td>
@@ -191,6 +214,11 @@ export default function AdminZones() {
             onChange={setRootDomain}
             placeholder="example.com"
           />
+          <Switch
+            checked={addAuto}
+            onChange={setAddAuto}
+            label="自动审批（该域名下的申请免审核直接通过）"
+          />
           <FieldError msg={addErr} />
           <div className="text-xs text-gray-400 mt-2">
             系统会通过 Cloudflare API 校验该域名是否已在你的账户中，并保存 Zone ID。Token 需具备 Zone:Read 与 DNS:Edit 权限。
@@ -214,6 +242,11 @@ export default function AdminZones() {
               checked={!!edit.enabled}
               onChange={(v) => setEdit({ ...edit, enabled: v ? 1 : 0 })}
               label="启用（禁用后不可再申请，已有子域名不受影响）"
+            />
+            <Switch
+              checked={!!edit.auto_approve}
+              onChange={(v) => setEdit({ ...edit, auto_approve: v ? 1 : 0 })}
+              label="自动审批（该域名下的申请免审核直接通过）"
             />
             <Input
               label="默认 TTL（秒）"

@@ -43,8 +43,8 @@ export const zoneCreateSchema = z.object({
       '根域名格式不正确（如 example.com）',
     ),
   enabled: z.boolean().optional().default(true),
-  auto_approve: z.boolean().optional().default(false),
-  default_ttl: z.number().int().min(60).max(86400).optional().default(300),
+  auto_approve: z.boolean().optional(),
+  default_ttl: z.number().int().min(60).max(86400).optional(),
   allowed_types: z
     .string()
     .optional()
@@ -138,4 +138,6 @@ export const settingsUpdateSchema = z.object({
   registration_enabled: z.boolean().optional(),
   max_subdomains_per_user: z.number().int().min(1).max(1000).optional(),
   max_applications_per_month: z.number().int().min(1).max(10000).optional(),
+  default_auto_approve: z.boolean().optional(),
+  default_zone_ttl: z.number().int().min(60).max(86400).optional(),
 })
