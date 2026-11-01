@@ -5,7 +5,7 @@ import { useAuth, useToast } from '../context'
 import { Icon, Button, Input } from '../components/ui'
 
 export default function Login() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
@@ -18,7 +18,7 @@ export default function Login() {
     setErr('')
     setLoading(true)
     try {
-      await api.post('/api/auth/login', { email, password })
+      await api.post('/api/auth/login', { username, password })
       await refresh()
       toast('登录成功', 'success')
       const u = await api.get<{ role: string }>('/api/auth/me')
@@ -48,14 +48,14 @@ export default function Login() {
         <div className="card p-6">
           <h1 className="text-xl font-medium text-on-surface">登录</h1>
           <p className="text-sm text-on-surface-variant mt-1 mb-4">
-            使用邮箱与密码登录你的账户
+            使用用户名与密码登录你的账户
           </p>
           <form onSubmit={submit} className="space-y-3">
             <Input
-              label="邮箱"
-              type="email"
-              value={email}
-              onChange={setEmail}
+              label="用户名"
+              type="text"
+              value={username}
+              onChange={setUsername}
               autoComplete="username"
               required
             />

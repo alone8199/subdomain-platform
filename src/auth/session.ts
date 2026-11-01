@@ -9,7 +9,7 @@ const COOKIE_NAME = 'session'
 
 export interface SessionUser {
   id: string
-  email: string
+  username: string
   role: 'admin' | 'user'
   status: 'active' | 'disabled'
 }
@@ -72,14 +72,14 @@ export async function resolveSession(
   }
   const u = await db(env).get<{
     id: string
-    email: string
+    username: string
     role: string
     status: string
-  }>('SELECT id, email, role, status FROM users WHERE id = ?', s.user_id)
+  }>('SELECT id, username, role, status FROM users WHERE id = ?', s.user_id)
   if (!u || u.status === 'disabled') return null
   return {
     id: u.id,
-    email: u.email,
+    username: u.username,
     role: u.role as any,
     status: u.status as any,
   }

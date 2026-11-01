@@ -11,7 +11,7 @@ export type SubdomainStatus =
 
 export interface User {
   id: string
-  email: string
+  username: string
   role: Role
   status: UserStatus
   created_at: number
@@ -70,7 +70,7 @@ export interface Subdomain {
 export interface AuditLog {
   id: string
   actor_id: string | null
-  actor_email: string | null
+  actor_name: string | null
   action: string
   target: string | null
   root_domain: string | null

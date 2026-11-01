@@ -320,8 +320,8 @@ userRoutes.post('/settings/password', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'user_change',
     actorId: user.id,
-    actorEmail: user.email,
-    target: user.email,
+    actorName: user.username,
+    target: user.username,
     result: 'success',
     detail: '修改密码',
     c,

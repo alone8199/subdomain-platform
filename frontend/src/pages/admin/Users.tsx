@@ -20,7 +20,7 @@ export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState<'user' | 'admin'>('user')
   const [addErr, setAddErr] = useState('')
@@ -48,8 +48,8 @@ export default function AdminUsers() {
   const addUser = async (e: React.FormEvent) => {
     e.preventDefault()
     setAddErr('')
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      setAddErr('邮箱格式不正确')
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{1,31}$/.test(username)) {
+      setAddErr('用户名仅允许字母、数字、下划线、连字符，长度 2-32')
       return
     }
     if (password.length < 8) {
@@ -57,10 +57,10 @@ export default function AdminUsers() {
       return
     }
     try {
-      await api.post('/api/admin/users', { email, password, role })
+      await api.post('/api/admin/users', { username, password, role })
       toast('用户已创建', 'success')
       setShowAdd(false)
-      setEmail('')
+      setUsername('')
       setPassword('')
       setRole('user')
       load()
@@ -122,7 +122,7 @@ export default function AdminUsers() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gray-50">
-                  <th className="th">邮箱</th>
+                  <th className="th">用户名</th>
                   <th className="th">角色</th>
                   <th className="th">状态</th>
                   <th className="th">创建时间</th>
@@ -132,7 +132,7 @@ export default function AdminUsers() {
               <tbody>
                 {users.map((u) => (
                   <tr key={u.id}>
-                    <td className="td font-medium">{u.email}</td>
+                    <td className="td font-medium">{u.username}</td>
                     <td className="td"><Badge value={u.role} /></td>
                     <td className="td"><Badge value={u.status} /></td>
                     <td className="td text-xs text-gray-500">{new Date(u.created_at * 1000).toLocaleDateString('zh-CN')}</td>
@@ -166,7 +166,7 @@ export default function AdminUsers() {
         }
       >
         <form onSubmit={addUser} className="space-y-3">
-          <Input label="邮箱" value={email} onChange={setEmail} />
+          <Input label="用户名" value={username} onChange={setUsername} />
           <Input label="密码" type="password" value={password} onChange={setPassword} />
           <Select
             label="角色"

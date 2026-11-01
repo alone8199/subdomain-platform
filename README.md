@@ -148,7 +148,7 @@ npx wrangler secret put ADMIN_INITIAL_PASSWORD
 | `SETUP_TOKEN` | 初始化管理员时校验的令牌，**防止被抢注** |
 | `ADMIN_INITIAL_PASSWORD` | 管理员初始密码（≥8 位） |
 
-非敏感变量 `ADMIN_EMAIL` 已写在 `wrangler.toml` 的 `[vars]` 中，可按需修改（需与初始化时使用的邮箱一致）。
+非敏感变量 `ADMIN_USERNAME` 已写在 `wrangler.toml` 的 `[vars]` 中，可按需修改（需与初始化时使用的用户名一致）。
 
 ### 7. 构建前端并部署
 
@@ -165,9 +165,9 @@ npm run deploy
 
 ### 9. 初始化管理员
 
-浏览器访问 `https://<你的域名>/setup`，输入你在第 6 步设置的 `SETUP_TOKEN`，提交后系统会用 `ADMIN_EMAIL` 与 `ADMIN_INITIAL_PASSWORD` 创建管理员账号。之后访问 `/login` 用该邮箱密码登录。
+浏览器访问 `https://<你的域名>/setup`，输入你在第 6 步设置的 `SETUP_TOKEN`，提交后系统会用 `ADMIN_USERNAME` 与 `ADMIN_INITIAL_PASSWORD` 创建管理员账号。之后访问 `/login` 用该用户名密码登录。
 
-> 初始化逻辑：仅当 `users` 表为空、且 `setupToken` 与 `SETUP_TOKEN` 一致、且邮箱与 `ADMIN_EMAIL` 一致时才创建，杜绝被他人抢注。
+> 初始化逻辑：仅当 `users` 表为空、且 `setupToken` 与 `SETUP_TOKEN` 一致、且用户名与 `ADMIN_USERNAME` 一致时才创建，杜绝被他人抢注。
 
 ---
 
@@ -190,7 +190,7 @@ npm run deploy
 
 ## 功能概览
 
-- **认证**：邮箱+密码登录；会话持久化在 D1（便于查询与审计，且数据模型要求 `sessions` 表），Cookie 为 `HttpOnly; Secure; SameSite=Lax`，7 天过期；KV 用于登录与申请接口的限流缓存（满足“会话/限流缓存：KV”的强依赖要求，限流即用 KV；若后续需要把会话本身也移入 KV 可平滑扩展）；公开注册默认关闭，管理员可在后台开启或手动建用户；修改类接口校验 Origin/Referer 防 CSRF。
+- **认证**：用户名+密码登录；会话持久化在 D1（便于查询与审计，且数据模型要求 `sessions` 表），Cookie 为 `HttpOnly; Secure; SameSite=Lax`，7 天过期；KV 用于登录与申请接口的限流缓存（满足“会话/限流缓存：KV”的强依赖要求，限流即用 KV；若后续需要把会话本身也移入 KV 可平滑扩展）；公开注册默认关闭，管理员可在后台开启或手动建用户；修改类接口校验 Origin/Referer 防 CSRF。
 - **多根域名**：支持接入任意数量根域名，每个独立配置（启用/禁用、默认 TTL、允许记录类型、保留词、备注），唯一性约束，删除前校验无活跃子域名。
 - **子域名申请（自动通过）**：选根域名 + 前缀 + 记录类型（CNAME/A/AAAA/TXT）+ 目标 + TTL + 可选到期；**提交即自动通过并立即创建 DNS 记录，无需管理员审批**（申请即开通）。前缀格式（仅字母数字与连字符、长度等）与保留词（`reserved_words`）在**前端实时拦截**，非标准前缀无法提交；D1 与 Cloudflare Zone 双重冲突检测；创建失败回滚为 `error` 并展示脱敏错误，可重试。已激活子域名即可直接用于解析，解析由 Cloudflare 边缘节点承载，**解析请求次数无平台限制**。创建出的 DNS 记录默认走灰云（直连），是否启用 Cloudflare 代理（橙色云）由用户在 Cloudflare 控制台自行设置，平台不控制该开关。
 - **配额限制**：管理员后台「系统设置」可配置 `max_subdomains_per_user`（每用户拥有的子域名数量上限，默认 10）与 `max_applications_per_month`（每用户每月申请次数上限，默认 30）；超出时申请接口返回 `LIMIT_REACHED` / `MONTH_LIMIT`（HTTP 429）。用户中心「概览」以进度条展示已用/上限。
@@ -217,7 +217,7 @@ npm run deploy
 
 ## 最小验收清单
 
-1. **登录**：访问 `/setup` 用 `SETUP_TOKEN` 初始化管理员 → `/login` 用管理员邮箱密码登录成功。
+1. **登录**：访问 `/setup` 用 `SETUP_TOKEN` 初始化管理员 → `/login` 用管理员用户名密码登录成功。
 2. **添加根域名**：管理员后台「根域名管理」→ 添加 `example.com` → 系统校验 Token 权限并保存 Zone ID，列表显示启用/自动审批/统计。
 3. **用户申请**：用普通用户（或开启公开注册后注册）在「申请子域名」选择根域名、填前缀 `foo`、类型 CNAME、目标 `target.example.net` 提交。
 4. **自动通过**：提交申请后无需审批，状态直接为 `active`，并在 Cloudflare 对应 Zone 创建 DNS 记录。非标准前缀（如含下划线、命中保留词 `www` 等）在提交前被前端拦截。

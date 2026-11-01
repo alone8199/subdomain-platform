@@ -1,12 +1,14 @@
 import { z } from 'zod'
 
 // -------------------- 通用 --------------------
-export const emailSchema = z
+export const usernameSchema = z
   .string()
   .trim()
   .toLowerCase()
-  .email('邮箱格式不正确')
-  .max(254)
+  .regex(
+    /^[a-z0-9][a-z0-9_-]{1,31}$/,
+    '用户名仅允许小写字母、数字、下划线、连字符，长度 2-32，且以字母或数字开头',
+  )
 
 export const passwordSchema = z
   .string()
@@ -19,12 +21,12 @@ export const setupSchema = z.object({
 })
 
 export const registerSchema = z.object({
-  email: emailSchema,
+  username: usernameSchema,
   password: passwordSchema,
 })
 
 export const loginSchema = z.object({
-  email: emailSchema,
+  username: usernameSchema,
   password: z.string().min(1, '请输入密码'),
 })
 
@@ -117,7 +119,7 @@ export const recordEditSchema = z.object({
 
 // -------------------- 用户管理 --------------------
 export const userCreateSchema = z.object({
-  email: emailSchema,
+  username: usernameSchema,
   password: passwordSchema,
   role: z.enum(['user', 'admin']).optional().default('user'),
 })

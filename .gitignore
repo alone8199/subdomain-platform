@@ -6,3 +6,4 @@ dist/
 .DS_Store
 worker-configuration.d.ts
 frontend/vite-env.d.ts.local
+.cloudstudio

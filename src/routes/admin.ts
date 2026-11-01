@@ -13,7 +13,7 @@ import {
   settingsUpdateSchema,
   subdomainEditSchema,
 } from '../validators/schemas'
-import { db, getZoneByRootDomain, getZoneById, getUserByEmail } from '../db'
+import { db, getZoneByRootDomain, getZoneById, getUserByName } from '../db'
 import { makeCf, CloudflareError } from '../cloudflare/client'
 import { ApiError } from '../utils/error'
 import {
@@ -127,7 +127,7 @@ adminRoutes.post('/zones', csrfMiddleware, async (c) => {
     await audit(c.env, {
       action: 'zone_change',
       actorId: c.get('user').id,
-      actorEmail: c.get('user').email,
+      actorName: c.get('user').username,
       target: root_domain,
       result: 'failure',
       detail: msg,
@@ -157,7 +157,7 @@ adminRoutes.post('/zones', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'zone_change',
     actorId: c.get('user').id,
-    actorEmail: c.get('user').email,
+    actorName: c.get('user').username,
     target: root_domain,
     rootDomain: root_domain,
     zoneId: zone.id,
@@ -201,7 +201,7 @@ adminRoutes.put('/zones/:id', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'zone_change',
     actorId: c.get('user').id,
-    actorEmail: c.get('user').email,
+    actorName: c.get('user').username,
     target: z.root_domain,
     rootDomain: z.root_domain,
     zoneId: z.cloudflare_zone_id,
@@ -232,7 +232,7 @@ adminRoutes.delete('/zones/:id', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'zone_change',
     actorId: c.get('user').id,
-    actorEmail: c.get('user').email,
+    actorName: c.get('user').username,
     target: z.root_domain,
     rootDomain: z.root_domain,
     zoneId: z.cloudflare_zone_id,
@@ -382,7 +382,7 @@ adminRoutes.post('/subdomains/:id/retry', csrfMiddleware, async (c) => {
 // -------------------- 用户管理 --------------------
 adminRoutes.get('/users', async (c) => {
   const rows = await db(c.env).all<any>(
-    'SELECT id, email, role, status, created_at, updated_at FROM users ORDER BY created_at DESC',
+    'SELECT id, username, role, status, created_at, updated_at FROM users ORDER BY created_at DESC',
   )
   return ok(c, rows)
 })
@@ -392,18 +392,18 @@ adminRoutes.post('/users', csrfMiddleware, async (c) => {
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
   }
-  const { email, password, role } = parsed.data
-  const exist = await getUserByEmail(db(c.env), email)
-  if (exist) return fail(c, 'EMAIL_TAKEN', '该邮箱已注册', 409)
+  const { username, password, role } = parsed.data
+  const exist = await getUserByName(db(c.env), username)
+  if (exist) return fail(c, 'USERNAME_TAKEN', '该用户名已注册', 409)
   const salt = generateSalt()
   const hash = await hashPassword(password, salt)
   const now = nowSec()
   const id = newId()
   await db(c.env).run(
-    `INSERT INTO users (id, email, password_hash, salt, role, status, created_at, updated_at)
+    `INSERT INTO users (id, username, password_hash, salt, role, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, 'active', ?, ?)`,
     id,
-    email,
+    username,
     hash,
     salt,
     role,
@@ -413,8 +413,8 @@ adminRoutes.post('/users', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'user_change',
     actorId: c.get('user').id,
-    actorEmail: c.get('user').email,
-    target: email,
+    actorName: c.get('user').username,
+    target: username,
     result: 'success',
     detail: `创建用户 role=${role}`,
     c,
@@ -451,8 +451,8 @@ adminRoutes.patch('/users/:id', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'user_change',
     actorId: me.id,
-    actorEmail: me.email,
-    target: target.email,
+    actorName: me.username,
+    target: target.username,
     result: 'success',
     detail: `更新 status=${d.status ?? ''} role=${d.role ?? ''}`,
     c,
@@ -482,8 +482,8 @@ adminRoutes.post('/users/:id/reset-password', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'user_change',
     actorId: c.get('user').id,
-    actorEmail: c.get('user').email,
-    target: target.email,
+    actorName: c.get('user').username,
+    target: target.username,
     result: 'success',
     detail: '重置密码',
     c,
@@ -512,8 +512,8 @@ adminRoutes.post('/users/:id/toggle-admin', csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'user_change',
     actorId: me.id,
-    actorEmail: me.email,
-    target: target.email,
+    actorName: me.username,
+    target: target.username,
     result: 'success',
     detail: `设置角色为 ${newRole}`,
     c,
@@ -582,7 +582,7 @@ adminRoutes.put('/settings', csrfMiddleware, async (c) => {
     await audit(c.env, {
       action: 'user_change',
       actorId: actor.id,
-      actorEmail: actor.email,
+      actorName: actor.username,
       target: 'settings',
       result: 'success',
       detail,

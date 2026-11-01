@@ -53,13 +53,13 @@ export function db(env: Env): Db {
 }
 
 // -------------------- Users --------------------
-export async function getUserByEmail(
+export async function getUserByName(
   d: Db,
-  email: string,
+  username: string,
 ): Promise<UserRow | null> {
   return d.get<UserRow>(
-    'SELECT * FROM users WHERE email = ?',
-    email.toLowerCase(),
+    'SELECT * FROM users WHERE username = ?',
+    username.toLowerCase(),
   )
 }
 

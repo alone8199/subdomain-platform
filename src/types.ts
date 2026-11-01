@@ -16,7 +16,7 @@ export type SubdomainStatus =
 
 export interface UserRow {
   id: string
-  email: string
+  username: string
   password_hash: string
   salt: string
   role: Role
@@ -72,7 +72,7 @@ export interface SubdomainRow {
 export interface AuditRow {
   id: string
   actor_id: string | null
-  actor_email: string | null
+  actor_name: string | null
   action: string
   target: string | null
   root_domain: string | null

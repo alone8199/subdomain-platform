@@ -98,7 +98,7 @@ export default function AdminAudit() {
                 {list.map((l) => (
                   <tr key={l.id}>
                     <td className="td text-xs text-gray-500 whitespace-nowrap">{fmt(l.created_at)}</td>
-                    <td className="td text-xs">{l.actor_email ?? '-'}</td>
+                    <td className="td text-xs">{l.actor_name ?? '-'}</td>
                     <td className="td">{l.action}</td>
                     <td className="td max-w-xs truncate">{l.target ?? '-'}</td>
                     <td className="td">{l.root_domain ?? '-'}</td>

@@ -27,10 +27,10 @@ const zid = () => 'zone_' + rand(8)
 
 // ---------------- 内存数据 ----------------
 const users = [
-  { id: 'u_admin', email: 'admin@demo.com', role: 'admin', status: 'active', created_at: now() - 86400 * 60 },
-  { id: 'u_user', email: 'user@demo.com', role: 'user', status: 'active', created_at: now() - 86400 * 30 },
-  { id: 'u_bob', email: 'bob@example.com', role: 'user', status: 'active', created_at: now() - 86400 * 20 },
-  { id: 'u_alice', email: 'alice@example.com', role: 'user', status: 'disabled', created_at: now() - 86400 * 15 },
+  { id: 'u_admin', username: 'admin', role: 'admin', status: 'active', created_at: now() - 86400 * 60 },
+  { id: 'u_user', username: 'user', role: 'user', status: 'active', created_at: now() - 86400 * 30 },
+  { id: 'u_bob', username: 'bob', role: 'user', status: 'active', created_at: now() - 86400 * 20 },
+  { id: 'u_alice', username: 'alice', role: 'user', status: 'disabled', created_at: now() - 86400 * 15 },
 ]
 
 const zones = [
@@ -83,7 +83,7 @@ const audit = [
   mkAudit('delete', 'old.example.com', 'success', '用户删除子域名', '127.0.0.1', 'example.com'),
 ]
 
-const sessions = new Map() // token -> { email, expiresAt }
+const sessions = new Map() // token -> { username, expiresAt }
 let registrationEnabled = false
 let maxSubdomainsPerUser = 10
 let maxApplicationsPerMonth = 30
@@ -102,7 +102,7 @@ function mkSub(prefix, root, zoneId, type, target, userId, status, createdAt, ex
 }
 function mkAudit(action, target, result, detail, ip, rootDomain = null, zoneId = null) {
   return {
-    id: randomUUID(), actor_id: 'u_admin', actor_email: 'admin@demo.com',
+    id: randomUUID(), actor_id: 'u_admin', actor_username: 'admin',
     action, target, root_domain: rootDomain, zone_id: zoneId, result, detail,
     ip, created_at: now() - Math.floor(Math.random() * 86400 * 3),
   }
@@ -115,8 +115,8 @@ function zoneSummary(zoneId) {
     pending: subs.filter((s) => s.status === 'pending').length,
   }
 }
-function findUser(email) {
-  return users.find((u) => u.email === email)
+function findUser(username) {
+  return users.find((u) => u.username === username)
 }
 
 // ---------------- HTTP 辅助 ----------------
@@ -165,13 +165,13 @@ async function handleApi(req, res, url) {
   const seg = url.pathname.split('/').filter(Boolean) // ['api','admin','zones', ...]
   const method = req.method.toUpperCase()
   const q = url.searchParams
-  const sessionEmail = (() => {
+  const sessionName = (() => {
     const t = getCookie(req, 'session')
     const s = t && sessions.get(t)
-    if (s && s.expiresAt > now()) return s.email
+    if (s && s.expiresAt > now()) return s.username
     return null
   })()
-  const currentUser = sessionEmail ? findUser(sessionEmail) : null
+  const currentUser = sessionName ? findUser(sessionName) : null
 
   // 健康检查
   if (seg[1] === 'health') return ok(res, { time: now(), env: 'demo' })
@@ -179,14 +179,14 @@ async function handleApi(req, res, url) {
   // 认证
   if (seg[1] === 'auth') {
     if (seg[2] === 'login' && method === 'POST') {
-      const { email, password } = await readBody(req)
-      if (!email || !password) return fail(res, 'INVALID', '请输入邮箱和密码', 422)
-      let u = findUser(email)
-      if (!u) { u = { id: 'u_' + rand(4), email, role: 'user', status: 'active', created_at: now() }; users.push(u) }
+      const { username, password } = await readBody(req)
+      if (!username || !password) return fail(res, 'INVALID', '请输入用户名和密码', 422)
+      let u = findUser(username)
+      if (!u) { u = { id: 'u_' + rand(4), username, role: 'user', status: 'active', created_at: now() }; users.push(u) }
       const token = rand(16)
-      sessions.set(token, { email: u.email, expiresAt: now() + 604800 })
+      sessions.set(token, { username: u.username, expiresAt: now() + 604800 })
       setCookie(res, 'session', token, 604800)
-      audit.unshift(mkAudit('login', u.email, 'success', '演示登录', getCookie(req, 'cf-ip') || '127.0.0.1'))
+      audit.unshift(mkAudit('login', u.username, 'success', '演示登录', getCookie(req, 'cf-ip') || '127.0.0.1'))
       return ok(res, sanitizeUser(u))
     }
     if (seg[2] === 'logout' && method === 'POST') {
@@ -207,7 +207,7 @@ async function handleApi(req, res, url) {
   // 用户中心
   if (seg[1] === 'user') {
     if (seg[2] === 'stats' && method === 'GET') {
-      const mine = subdomains.filter((s) => s.user_id === currentUser.email)
+      const mine = subdomains.filter((s) => s.user_id === currentUser.username)
       const monthStart = Math.floor(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1) / 1000)
       return ok(res, {
         total: mine.length,
@@ -226,7 +226,7 @@ async function handleApi(req, res, url) {
       return ok(res, list)
     }
     if (seg[2] === 'subdomains' && !seg[3] && method === 'GET') {
-      let list = subdomains.filter((s) => s.user_id === currentUser.email)
+      let list = subdomains.filter((s) => s.user_id === currentUser.username)
       const zf = q.get('zone_id')
       if (zf) list = list.filter((s) => s.zone_id === zf)
       return ok(res, list)
@@ -243,17 +243,17 @@ async function handleApi(req, res, url) {
       const full = `${prefix}.${zone.root_domain}`
       if (subdomains.some((s) => s.full_domain === full && s.status !== 'rejected')) return fail(res, 'DOMAIN_TAKEN', '该域名已被占用', 409)
       // 平台限制：每用户数量 + 每月申请次数
-      const owned = subdomains.filter((s) => s.user_id === currentUser.email && s.status !== 'rejected').length
+      const owned = subdomains.filter((s) => s.user_id === currentUser.username && s.status !== 'rejected').length
       if (owned >= maxSubdomainsPerUser) return fail(res, 'LIMIT_REACHED', `已达到每用户子域名数量上限（${maxSubdomainsPerUser} 个）`, 429)
       const monthStart = Math.floor(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1) / 1000)
-      const monthCount = subdomains.filter((s) => s.user_id === currentUser.email && s.created_at >= monthStart).length
+      const monthCount = subdomains.filter((s) => s.user_id === currentUser.username && s.created_at >= monthStart).length
       if (monthCount >= maxApplicationsPerMonth) return fail(res, 'MONTH_LIMIT', `本月申请次数已达上限（${maxApplicationsPerMonth} 次）`, 429)
       // 自动通过：创建即 active 并写 DNS 记录
-      const sub = mkSub(prefix, zone.root_domain, zone.id, b.record_type || 'CNAME', b.target, currentUser.email, 'active', now(), b.expires_at ?? null)
+      const sub = mkSub(prefix, zone.root_domain, zone.id, b.record_type || 'CNAME', b.target, currentUser.username, 'active', now(), b.expires_at ?? null)
       sub.dns_record_id = rid()
       subdomains.push(sub)
       // 根解析记录同步登记（name=''）
-      dnsRecords.push(mkRecord(sub.id, currentUser.email, '', b.record_type || 'CNAME', b.target, sub.ttl))
+      dnsRecords.push(mkRecord(sub.id, currentUser.username, '', b.record_type || 'CNAME', b.target, sub.ttl))
       audit.unshift(mkAudit('apply', full, 'success', '用户提交申请（自动通过）', '127.0.0.1', zone.root_domain, zone.cloudflare_zone_id))
       audit.unshift(mkAudit('dns_create', full, 'success', 'record_id=' + sub.dns_record_id, '127.0.0.1', zone.root_domain, zone.cloudflare_zone_id))
       return ok(res, sub)
@@ -262,7 +262,7 @@ async function handleApi(req, res, url) {
       const id = seg[3]
       const sub = subdomains.find((s) => s.id === id)
       if (!sub) return fail(res, 'NOT_FOUND', '子域名不存在', 404)
-      if (sub.user_id !== currentUser.email) return fail(res, 'FORBIDDEN', '无权操作该资源', 403)
+      if (sub.user_id !== currentUser.username) return fail(res, 'FORBIDDEN', '无权操作该资源', 403)
       // ---- 解析记录管理 ----
       if (seg[4] === 'records') {
         const rid2 = seg[5]
@@ -286,7 +286,7 @@ async function handleApi(req, res, url) {
           if (dnsRecords.filter((r) => r.subdomain_id === id).length >= 20)
             return fail(res, 'RECORD_LIMIT', '每个子域名最多 20 条解析记录', 429)
           if (!b.content) return fail(res, 'INVALID_CONTENT', '请填写记录值', 422)
-          const rec = mkRecord(id, currentUser.email, name, type, String(b.content), Number(b.ttl) || 300)
+          const rec = mkRecord(id, currentUser.username, name, type, String(b.content), Number(b.ttl) || 300)
           dnsRecords.push(rec)
           audit.unshift(mkAudit('record_create', full2, 'success', `type=${type}`, '127.0.0.1', sub.root_domain, sub.cloudflare_zone_id))
           return ok(res, rec, 201)
@@ -458,11 +458,11 @@ async function handleApi(req, res, url) {
     if (seg[2] === 'users' && method === 'GET') return ok(res, users)
     if (seg[2] === 'users' && method === 'POST') {
       const b = await readBody(req)
-      if (!b.email || !b.password) return fail(res, 'INVALID', '请填写邮箱和密码', 422)
-      if (findUser(b.email)) return fail(res, 'EXISTS', '用户已存在', 409)
-      const u = { id: 'u_' + rand(4), email: b.email, role: b.role === 'admin' ? 'admin' : 'user', status: 'active', created_at: now() }
+      if (!b.username || !b.password) return fail(res, 'INVALID', '请填写用户名和密码', 422)
+      if (findUser(b.username)) return fail(res, 'EXISTS', '用户已存在', 409)
+      const u = { id: 'u_' + rand(4), username: b.username, role: b.role === 'admin' ? 'admin' : 'user', status: 'active', created_at: now() }
       users.push(u)
-      audit.unshift(mkAudit('user_create', b.email, 'success', '管理员创建用户', '127.0.0.1'))
+      audit.unshift(mkAudit('user_create', b.username, 'success', '管理员创建用户', '127.0.0.1'))
       return ok(res, sanitizeUser(u))
     }
     if (seg[2] === 'users' && seg[3]) {
@@ -506,7 +506,7 @@ async function handleApi(req, res, url) {
 }
 
 function sanitizeUser(u) {
-  return { id: u.id, email: u.email, role: u.role, status: u.status, created_at: u.created_at }
+  return { id: u.id, username: u.username, role: u.role, status: u.status, created_at: u.created_at }
 }
 
 // ---------------- 静态资源 + SPA 回退 ----------------

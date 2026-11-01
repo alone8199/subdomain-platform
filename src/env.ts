@@ -6,7 +6,8 @@ export interface Env {
   ASSETS: Fetcher
 
   // 非敏感变量（可在 wrangler.toml [vars] 中）
-  ADMIN_EMAIL: string
+  ADMIN_USERNAME?: string
+  ADMIN_EMAIL?: string // 兼容旧部署
 
   // 敏感信息（必须通过 wrangler secret put 设置，绝不写入前端/日志）
   ADMIN_INITIAL_PASSWORD: string

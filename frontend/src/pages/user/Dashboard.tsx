@@ -64,7 +64,7 @@ export default function UserDashboard() {
 
   return (
     <div>
-      <PageHeader title="概览" desc={`欢迎，${user?.email ?? ''}`} />
+      <PageHeader title="概览" desc={`欢迎，${user?.username ?? ''}`} />
       {loading ? (
         <Spinner />
       ) : (

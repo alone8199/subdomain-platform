@@ -76,7 +76,7 @@ npm run secret:set
 | `SETUP_TOKEN` | 自定义一串随机字符串，首次初始化管理员时用 |
 | `ADMIN_INITIAL_PASSWORD` | 管理员初始密码 |
 
-另外在 `wrangler.toml` 的 `[vars]` 里把 `ADMIN_EMAIL` 改成你的管理员邮箱。
+另外在 `wrangler.toml` 的 `[vars]` 里把 `ADMIN_USERNAME` 改成你的管理员用户名。
 
 ## 6. 一键部署
 
@@ -95,8 +95,8 @@ https://subdomain-platform.<你的子域>.workers.dev
 浏览器打开部署地址，会自动跳到 `/setup` 页面：
 
 1. 粘贴 `SETUP_TOKEN`
-2. 提交后，系统用 `ADMIN_EMAIL` + `ADMIN_INITIAL_PASSWORD` 创建管理员
-3. 用该邮箱和密码登录，进入后台
+2. 提交后，系统用 `ADMIN_USERNAME` + `ADMIN_INITIAL_PASSWORD` 创建管理员
+3. 用该用户名和密码登录，进入后台
 
 > 初始化成功后 setup 接口自动失效，无法重复创建。
 

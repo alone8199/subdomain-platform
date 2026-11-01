@@ -9,7 +9,7 @@ export async function audit(
   env: Env,
   params: {
     actorId?: string | null
-    actorEmail?: string | null
+    actorName?: string | null
     action: string
     target?: string | null
     rootDomain?: string | null
@@ -22,11 +22,11 @@ export async function audit(
   const ip = params.c ? clientIp(params.c) : null
   await db(env).run(
     `INSERT INTO audit_logs
-      (id, actor_id, actor_email, action, target, root_domain, zone_id, result, detail, ip, created_at)
+      (id, actor_id, actor_name, action, target, root_domain, zone_id, result, detail, ip, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     newId(),
     params.actorId ?? null,
-    params.actorEmail ?? null,
+    params.actorName ?? null,
     params.action,
     params.target ?? null,
     params.rootDomain ?? null,

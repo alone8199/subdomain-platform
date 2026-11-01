@@ -8,7 +8,7 @@ import {
   registerSchema,
   loginSchema,
 } from '../validators/schemas'
-import { db, getUserByEmail, toPublicUser } from '../db'
+import { db, getUserByName, toPublicUser } from '../db'
 import { generateSalt, hashPassword, verifyPassword } from '../auth/password'
 import {
   createSession,
@@ -21,8 +21,8 @@ import { clientIp } from '../utils/ip'
 
 export const authRoutes = new Hono<AppEnv>()
 
-// 初始化管理员：需携带正确的 SETUP_TOKEN，且邮箱与 ADMIN_EMAIL 一致。
-// 管理员邮箱与密码取自环境变量，避免被外部抢注。
+// 初始化管理员：需携带正确的 SETUP_TOKEN，且用户名与 ADMIN_USERNAME 一致。
+// 管理员用户名与密码取自环境变量，避免被外部抢注。
 authRoutes.post('/setup', csrfMiddleware, async (c) => {
   const parsed = setupSchema.safeParse(await c.req.json().catch(() => ({})))
   if (!parsed.success) {
@@ -34,12 +34,12 @@ authRoutes.post('/setup', csrfMiddleware, async (c) => {
     return fail(c, 'FORBIDDEN', 'SETUP_TOKEN 不正确', 403)
   }
 
-  const adminEmail = (c.env.ADMIN_EMAIL || '').toLowerCase()
-  if (!adminEmail) {
-    return fail(c, 'CONFIG_ERROR', '未配置 ADMIN_EMAIL', 500)
+  const adminName = (c.env.ADMIN_USERNAME || c.env.ADMIN_EMAIL || '').toLowerCase()
+  if (!adminName) {
+    return fail(c, 'CONFIG_ERROR', '未配置 ADMIN_USERNAME', 500)
   }
 
-  const exists = await getUserByEmail(db(c.env), adminEmail)
+  const exists = await getUserByName(db(c.env), adminName)
   if (exists) {
     return fail(c, 'ALREADY_INITIALIZED', '管理员已初始化', 409)
   }
@@ -53,10 +53,10 @@ authRoutes.post('/setup', csrfMiddleware, async (c) => {
   const hash = await hashPassword(initialPassword, salt)
   const now = nowSec()
   await db(c.env).run(
-    `INSERT INTO users (id, email, password_hash, salt, role, status, created_at, updated_at)
+    `INSERT INTO users (id, username, password_hash, salt, role, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, 'admin', 'active', ?, ?)`,
     newId(),
-    adminEmail,
+    adminName,
     hash,
     salt,
     now,
@@ -64,7 +64,7 @@ authRoutes.post('/setup', csrfMiddleware, async (c) => {
   )
   await audit(c.env, {
     action: 'setup',
-    target: adminEmail,
+    target: adminName,
     result: 'success',
     detail: '初始化管理员账号',
     c,
@@ -85,19 +85,19 @@ authRoutes.post('/register', csrfMiddleware, async (c) => {
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
   }
-  const { email, password } = parsed.data
-  const exists = await getUserByEmail(db(c.env), email)
+  const { username, password } = parsed.data
+  const exists = await getUserByName(db(c.env), username)
   if (exists) {
-    return fail(c, 'EMAIL_TAKEN', '该邮箱已注册', 409)
+    return fail(c, 'USERNAME_TAKEN', '该用户名已注册', 409)
   }
   const salt = generateSalt()
   const hash = await hashPassword(password, salt)
   const now = nowSec()
   await db(c.env).run(
-    `INSERT INTO users (id, email, password_hash, salt, role, status, created_at, updated_at)
+    `INSERT INTO users (id, username, password_hash, salt, role, status, created_at, updated_at)
      VALUES (?, ?, ?, ?, 'user', 'active', ?, ?)`,
     newId(),
-    email,
+    username,
     hash,
     salt,
     now,
@@ -105,7 +105,7 @@ authRoutes.post('/register', csrfMiddleware, async (c) => {
   )
   await audit(c.env, {
     action: 'register',
-    target: email,
+    target: username,
     result: 'success',
     c,
   })
@@ -118,28 +118,28 @@ authRoutes.post('/login', loginRateLimit, csrfMiddleware, async (c) => {
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
   }
-  const { email, password } = parsed.data
-  const user = await getUserByEmail(db(c.env), email)
+  const { username, password } = parsed.data
+  const user = await getUserByName(db(c.env), username)
   if (!user) {
     await audit(c.env, {
       action: 'login',
-      target: email,
+      target: username,
       result: 'failure',
       detail: '用户不存在',
       c,
     })
-    return fail(c, 'INVALID_CREDENTIALS', '邮箱或密码错误', 401)
+    return fail(c, 'INVALID_CREDENTIALS', '用户名或密码错误', 401)
   }
   const valid = await verifyPassword(password, user.salt, user.password_hash)
   if (!valid || user.status === 'disabled') {
     await audit(c.env, {
       action: 'login',
-      target: email,
+      target: username,
       result: 'failure',
       detail: user.status === 'disabled' ? '账号已禁用' : '密码错误',
       c,
     })
-    return fail(c, 'INVALID_CREDENTIALS', '邮箱或密码错误', 401)
+    return fail(c, 'INVALID_CREDENTIALS', '用户名或密码错误', 401)
   }
   await createSession(
     c.env,
@@ -151,8 +151,8 @@ authRoutes.post('/login', loginRateLimit, csrfMiddleware, async (c) => {
   await audit(c.env, {
     action: 'login',
     actorId: user.id,
-    actorEmail: user.email,
-    target: user.email,
+    actorName: user.username,
+    target: user.username,
     result: 'success',
     c,
   })
@@ -171,18 +171,18 @@ authRoutes.get('/me', async (c) => {
   if (!token) return fail(c, 'UNAUTHENTICATED', '未登录', 401)
   const u = await db(c.env).get<{
     id: string
-    email: string
+    username: string
     role: string
     status: string
     created_at: number
   }>(
-    'SELECT id, email, role, status, created_at FROM users WHERE id = (SELECT user_id FROM sessions WHERE id = ?)',
+    'SELECT id, username, role, status, created_at FROM users WHERE id = (SELECT user_id FROM sessions WHERE id = ?)',
     token,
   )
   if (!u) return fail(c, 'UNAUTHENTICATED', '会话无效', 401)
   return ok(c, {
     id: u.id,
-    email: u.email,
+    username: u.username,
     role: u.role,
     status: u.status,
     created_at: u.created_at,

@@ -21,7 +21,7 @@ export default function Setup() {
       await api.post<{ initialized: boolean }>('/api/auth/setup', {
         setupToken: token,
       })
-      setMsg('管理员初始化成功，请使用环境变量中的管理员邮箱与密码登录。')
+      setMsg('管理员初始化成功，请使用环境变量中的管理员用户名与密码登录。')
       toast('初始化成功', 'success')
       setTimeout(() => navigate('/login'), 800)
     } catch (e) {
@@ -73,7 +73,7 @@ export default function Setup() {
             </Button>
           </form>
           <div className="mt-4 text-xs text-on-surface-variant">
-            管理员邮箱与初始密码取自环境变量 ADMIN_EMAIL / ADMIN_INITIAL_PASSWORD。
+            管理员用户名与初始密码取自环境变量 ADMIN_USERNAME / ADMIN_INITIAL_PASSWORD。
           </div>
         </div>
       </div>

@@ -6,20 +6,20 @@ compatibility_date = "2025-01-01"
 
 # 公开变量（非敏感）。敏感信息请使用 wrangler secret put 设置，不要写在这里。
 [vars]
-ADMIN_EMAIL = "admin@example.com"
+ADMIN_USERNAME = "Ilovemht@qq.com"
 
 # ---- D1 数据库 ----
 # 执行 `wrangler d1 create subdomain_platform` 后，把返回的 database_id 填到下面。
 [[d1_databases]]
 binding = "DB"
 database_name = "subdomain_platform"
-database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+database_id = "b09dac14-a7e0-46df-bf4a-f2f044778e76"
 
 # ---- KV 命名空间 ----
 # 执行 `wrangler kv namespace create RATE_LIMIT` 后，把返回的 id 填到下面。
 [[kv_namespaces]]
 binding = "KV"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "d83f7f9bc7ae4ee498fe5434a77ea35d"
 
 # ---- 静态资源（前端构建产物） ----
 [assets]

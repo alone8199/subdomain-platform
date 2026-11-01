@@ -101,7 +101,7 @@ function RailContent({
           color: 'var(--ui-on-surface-variant)',
         }}
       >
-        <div className="truncate">{user?.email}</div>
+        <div className="truncate">{user?.username}</div>
         <button
           onClick={logout}
           className="mt-2 flex items-center gap-1 hover-bg-high rounded-full px-2 py-1"
