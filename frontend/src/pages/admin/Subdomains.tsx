@@ -7,6 +7,8 @@ import {
   EmptyState,
   Badge,
   ConfirmButton,
+  Modal,
+  FieldError,
 } from '../../components/ui'
 import type { Subdomain, Zone } from '../../types'
 
@@ -23,6 +25,15 @@ export default function AdminSubdomains() {
   const [zoneFilter, setZoneFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [loading, setLoading] = useState(true)
+
+  // 编辑态
+  const [editId, setEditId] = useState('')
+  const [editTarget, setEditTarget] = useState('')
+  const [editTtl, setEditTtl] = useState('')
+  const [editProxied, setEditProxied] = useState(false)
+  const [editRecType, setEditRecType] = useState('')
+  const [editErr, setEditErr] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -64,6 +75,40 @@ export default function AdminSubdomains() {
       load()
     } catch (e) {
       if (e instanceof ApiClientError) toast(e.message, 'error')
+    }
+  }
+
+  const openEdit = (s: Subdomain) => {
+    setEditId(s.id)
+    setEditTarget(s.target)
+    setEditTtl(String(s.ttl))
+    setEditProxied(s.proxied === 1)
+    setEditRecType(s.record_type)
+    setEditErr(null)
+  }
+
+  const saveEdit = async () => {
+    setSaving(true)
+    setEditErr(null)
+    try {
+      const ttlNum = Number(editTtl)
+      if (!editTarget.trim()) throw new Error('请填写目标内容')
+      if (!Number.isInteger(ttlNum) || ttlNum < 60 || ttlNum > 86400) {
+        throw new Error('TTL 需为 60-86400 之间的整数')
+      }
+      await api.put(`/api/admin/subdomains/${editId}`, {
+        target: editTarget.trim(),
+        ttl: ttlNum,
+        proxied: editProxied,
+      })
+      toast('已保存并同步 DNS', 'success')
+      setEditId('')
+      load()
+    } catch (e) {
+      if (e instanceof ApiClientError) setEditErr(e.message)
+      else if (e instanceof Error) setEditErr(e.message)
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -120,6 +165,9 @@ export default function AdminSubdomains() {
                     <td className="td text-xs text-gray-500">{fmt(s.expires_at)}</td>
                     <td className="td whitespace-nowrap">
                       <div className="flex gap-1">
+                        {s.status === 'active' && (
+                          <button className="btn-secondary btn-sm" onClick={() => openEdit(s)}>编辑</button>
+                        )}
                         {s.status === 'error' && (
                           <button className="btn-secondary btn-sm" onClick={() => retry(s.id)}>重试</button>
                         )}
@@ -137,6 +185,55 @@ export default function AdminSubdomains() {
           </div>
         )}
       </div>
+
+      <Modal
+        open={!!editId}
+        title="编辑子域名"
+        onClose={() => setEditId('')}
+        footer={
+          <>
+            <button className="btn-secondary" onClick={() => setEditId('')}>取消</button>
+            <button className="btn-primary" onClick={saveEdit} disabled={saving}>
+              {saving ? '保存中…' : '保存'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="label">目标内容</label>
+            <input
+              className="input"
+              value={editTarget}
+              onChange={(e) => setEditTarget(e.target.value)}
+              placeholder="例如 1.2.3.4 或 target.example.com"
+            />
+          </div>
+          <div>
+            <label className="label">TTL（秒）</label>
+            <input
+              className="input"
+              value={editTtl}
+              onChange={(e) => setEditTtl(e.target.value)}
+              inputMode="numeric"
+            />
+          </div>
+          {editRecType !== 'TXT' && (
+            <label className="flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={editProxied}
+                onChange={(e) => setEditProxied(e.target.checked)}
+              />
+              启用 Cloudflare 代理（橙色云）
+            </label>
+          )}
+          {editRecType === 'TXT' && (
+            <div className="text-xs text-gray-400">TXT 记录不支持代理。</div>
+          )}
+          <FieldError msg={editErr} />
+        </div>
+      </Modal>
     </div>
   )
 }
