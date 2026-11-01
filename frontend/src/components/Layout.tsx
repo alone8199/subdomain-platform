@@ -1,109 +1,182 @@
 import { useState, ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context'
-import { useToast } from '../context'
+import { NavLink, useLocation } from 'react-router-dom'
+import { useAuth, useTheme } from '../context'
+import { Icon } from './ui'
 
-interface NavItem {
-  to: string
-  label: string
+const USER_NAV = [
+  { to: '/u/dashboard', label: '概览', icon: 'home' },
+  { to: '/u/apply', label: '申请子域名', icon: 'dns' },
+  { to: '/u/subdomains', label: '我的子域名', icon: 'public' },
+  { to: '/u/settings', label: '账户设置', icon: 'settings' },
+]
+const ADMIN_NAV = [
+  { to: '/a/dashboard', label: '仪表盘', icon: 'home' },
+  { to: '/a/zones', label: '根域名', icon: 'dns' },
+  { to: '/a/approvals', label: '申请审批', icon: 'approval' },
+  { to: '/a/subdomains', label: '子域名', icon: 'public' },
+  { to: '/a/users', label: '用户', icon: 'people' },
+  { to: '/a/settings', label: '系统设置', icon: 'settings' },
+  { to: '/a/audit', label: '审计日志', icon: 'history' },
+]
+
+function Brand() {
+  return (
+    <div
+      className="flex items-center gap-2 px-5 h-14 border-b border-outline-variant"
+      style={{ borderColor: 'var(--md-outline-variant)' }}
+    >
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center"
+        style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
+      >
+        <Icon name="public" size={18} />
+      </div>
+      <span className="font-medium text-on-surface">子域名分发</span>
+    </div>
+  )
 }
 
-export function AppLayout({
-  nav,
-  children,
+function NavItems({
+  items,
+  onNavigate,
 }: {
-  nav: NavItem[]
-  children: ReactNode
+  items: { to: string; label: string; icon: string }[]
+  onNavigate: () => void
+}) {
+  return (
+    <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+      {items.map((it) => (
+        <NavLink
+          key={it.to}
+          to={it.to}
+          onClick={onNavigate}
+          className="flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-medium transition-colors hover-bg-high"
+          style={({ isActive }) =>
+            isActive
+              ? {
+                  background: 'var(--md-primary-container)',
+                  color: 'var(--md-on-primary-container)',
+                }
+              : { color: 'var(--md-on-surface-variant)' }
+          }
+        >
+          <Icon name={it.icon} size={20} />
+          {it.label}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
+function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme()
+  return (
+    <button
+      onClick={toggleTheme}
+      title={theme === 'dark' ? '切换到浅色' : '切换到深色'}
+      className="w-10 h-10 rounded-full flex items-center justify-center hover-bg-high"
+      style={{ color: 'var(--md-on-surface-variant)' }}
+    >
+      <Icon name={theme === 'dark' ? 'light_mode' : 'dark_mode'} />
+    </button>
+  )
+}
+
+function RailContent({
+  items,
+  onNavigate,
+}: {
+  items: { to: string; label: string; icon: string }[]
+  onNavigate: () => void
 }) {
   const { user, logout } = useAuth()
-  const { toast } = useToast()
-  const navigate = useNavigate()
-  const [open, setOpen] = useState(false)
+  return (
+    <>
+      <Brand />
+      <NavItems items={items} onNavigate={onNavigate} />
+      <div
+        className="px-4 py-3 text-xs border-t"
+        style={{
+          borderColor: 'var(--md-outline-variant)',
+          color: 'var(--md-on-surface-variant)',
+        }}
+      >
+        <div className="truncate">{user?.email}</div>
+        <button
+          onClick={logout}
+          className="mt-2 flex items-center gap-1 hover-bg-high rounded-full px-2 py-1"
+          style={{ color: 'var(--md-on-surface-variant)' }}
+        >
+          <Icon name="logout" size={16} /> 退出登录
+        </button>
+      </div>
+    </>
+  )
+}
 
-  const handleLogout = async () => {
-    await logout()
-    toast('已退出登录', 'info')
-    navigate('/login')
-  }
+function Shell({
+  role,
+  children,
+}: {
+  role: 'user' | 'admin'
+  children: ReactNode
+}) {
+  const items = role === 'admin' ? ADMIN_NAV : USER_NAV
+  const [drawer, setDrawer] = useState(false)
+  const { pathname } = useLocation()
+  const title =
+    (role === 'admin' ? ADMIN_NAV : USER_NAV).find((i) => pathname.startsWith(i.to))
+      ?.label ?? '子域名分发'
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* 侧边栏（桌面固定，移动折叠） */}
-      <aside
-        className={`${
-          open ? 'block' : 'hidden'
-        } md:block fixed md:static z-30 w-56 bg-white border-r border-gray-200 h-screen overflow-y-auto`}
-      >
-        <div className="px-4 py-4 border-b border-gray-200">
-          <div className="text-sm font-semibold text-gray-800">域名分发平台</div>
-          <div className="text-xs text-gray-400 mt-0.5">
-            {user?.role === 'admin' ? '管理员后台' : '用户中心'}
-          </div>
-        </div>
-        <nav className="p-2 space-y-0.5">
-          {nav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => setOpen(false)}
-              className={({ isActive }) =>
-                `block px-3 py-2 rounded text-sm ${
-                  isActive
-                    ? 'bg-brand-50 text-brand-700 font-medium'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+    <div className="min-h-screen bg-surface">
+      <aside className="hidden md:flex flex-col fixed inset-y-0 left-0 w-[248px] bg-surface-container-lowest border-r border-outline-variant">
+        <RailContent items={items} onNavigate={() => setDrawer(false)} />
       </aside>
 
-      {/* 主区域 */}
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sticky top-0 z-20">
-          <button
-            className="md:hidden btn-secondary btn-sm"
-            onClick={() => setOpen((v) => !v)}
+      {drawer && (
+        <div
+          className="md:hidden fixed inset-0 z-40"
+          style={{ background: 'var(--md-scrim)' }}
+          onClick={() => setDrawer(false)}
+        >
+          <aside
+            className="absolute inset-y-0 left-0 w-[248px] bg-surface-container-lowest border-r border-outline-variant flex flex-col"
+            onClick={(e) => e.stopPropagation()}
           >
-            菜单
-          </button>
-          <div className="flex-1" />
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-600">{user?.email}</span>
-            <button className="btn-secondary btn-sm" onClick={handleLogout}>
-              退出
+            <RailContent items={items} onNavigate={() => setDrawer(false)} />
+          </aside>
+        </div>
+      )}
+
+      <div className="md:ml-[248px]">
+        <header
+          className="sticky top-0 z-30 bg-surface border-b h-14 flex items-center justify-between px-4"
+          style={{ borderColor: 'var(--md-outline-variant)' }}
+        >
+          <div className="flex items-center gap-2">
+            <button
+              className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover-bg-high"
+              style={{ color: 'var(--md-on-surface-variant)' }}
+              onClick={() => setDrawer(true)}
+            >
+              <Icon name="menu" />
             </button>
+            <span className="font-medium text-on-surface">{title}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
           </div>
         </header>
-        <main className="flex-1 p-4 md:p-6 max-w-6xl w-full mx-auto">
-          {children}
-        </main>
+        <main className="p-4 md:p-6">{children}</main>
       </div>
     </div>
   )
 }
 
 export function UserLayout({ children }: { children: ReactNode }) {
-  const nav: NavItem[] = [
-    { to: '/u/dashboard', label: '概览' },
-    { to: '/u/apply', label: '申请子域名' },
-    { to: '/u/subdomains', label: '我的子域名' },
-    { to: '/u/settings', label: '账户设置' },
-  ]
-  return <AppLayout nav={nav}>{children}</AppLayout>
+  return <Shell role="user">{children}</Shell>
 }
-
 export function AdminLayout({ children }: { children: ReactNode }) {
-  const nav: NavItem[] = [
-    { to: '/a/dashboard', label: '仪表盘' },
-    { to: '/a/zones', label: '根域名管理' },
-    { to: '/a/approvals', label: '申请审批' },
-    { to: '/a/subdomains', label: '全部子域名' },
-    { to: '/a/users', label: '用户管理' },
-    { to: '/a/settings', label: '系统设置' },
-    { to: '/a/audit', label: '审计日志' },
-  ]
-  return <AppLayout nav={nav}>{children}</AppLayout>
+  return <Shell role="admin">{children}</Shell>
 }

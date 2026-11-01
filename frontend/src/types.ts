@@ -44,6 +44,7 @@ export interface ApplyZone {
   allowed_types: string
   default_ttl: number
   auto_approve: number
+  reserved_words: string
 }
 
 export interface Subdomain {

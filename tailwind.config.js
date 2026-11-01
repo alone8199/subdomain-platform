@@ -4,18 +4,34 @@ export default {
   theme: {
     extend: {
       colors: {
-        // 低饱和强调色（中性后台风），仅用于主操作/选中态
-        brand: {
-          50: '#f3f6f8',
-          100: '#e3e9ed',
-          200: '#c6d2da',
-          300: '#9fb1bd',
-          400: '#74899a',
-          500: '#52677a',
-          600: '#3f5061',
-          700: '#344250',
-          800: '#2d3944',
-          900: '#28323b',
+        // MD3 暖色调令牌（明暗由 data-theme 切换）
+        md: {
+          primary: 'var(--md-primary)',
+          onPrimary: 'var(--md-on-primary)',
+          primaryContainer: 'var(--md-primary-container)',
+          onPrimaryContainer: 'var(--md-on-primary-container)',
+          secondary: 'var(--md-secondary)',
+          onSecondary: 'var(--md-on-secondary)',
+          secondaryContainer: 'var(--md-secondary-container)',
+          onSecondaryContainer: 'var(--md-on-secondary-container)',
+          tertiary: 'var(--md-tertiary)',
+          surface: 'var(--md-surface)',
+          onSurface: 'var(--md-on-surface)',
+          surfaceVariant: 'var(--md-surface-variant)',
+          onSurfaceVariant: 'var(--md-on-surface-variant)',
+          surfaceContainerLowest: 'var(--md-surface-container-lowest)',
+          surfaceContainerLow: 'var(--md-surface-container-low)',
+          surfaceContainer: 'var(--md-surface-container)',
+          surfaceContainerHigh: 'var(--md-surface-container-high)',
+          surfaceContainerHighest: 'var(--md-surface-container-highest)',
+          outline: 'var(--md-outline)',
+          outlineVariant: 'var(--md-outline-variant)',
+          error: 'var(--md-error)',
+          onError: 'var(--md-on-error)',
+          errorContainer: 'var(--md-error-container)',
+          onErrorContainer: 'var(--md-on-error-container)',
+          inverseSurface: 'var(--md-inverse-surface)',
+          inverseOnSurface: 'var(--md-inverse-on-surface)',
         },
       },
       fontFamily: {
@@ -34,7 +50,10 @@ export default {
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
       borderRadius: {
-        DEFAULT: '6px',
+        full: '999px',
+        md: '12px',
+        lg: '16px',
+        xl: '28px',
       },
     },
   },

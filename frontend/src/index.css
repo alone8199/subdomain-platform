@@ -2,8 +2,84 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+/* =====================================================================
+   Material Design 3 — 暖色调（Warm）设计令牌
+   明暗主题通过 <html data-theme="light|dark"> 切换。
+   ===================================================================== */
+:root,
+[data-theme='light'] {
   color-scheme: light;
+  /* 主色 / 容器（暖棕） */
+  --md-primary: #8c5a3c;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #ffdbcc;
+  --md-on-primary-container: #371300;
+  --md-secondary: #77574d;
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: #ffdbd0;
+  --md-on-secondary-container: #2e150e;
+  --md-tertiary: #6f5553;
+  --md-on-tertiary: #ffffff;
+  /* 表面层级（暖白） */
+  --md-surface: #fffbff;
+  --md-on-surface: #211a17;
+  --md-surface-variant: #e7d9d0;
+  --md-on-surface-variant: #52443d;
+  --md-surface-container-lowest: #ffffff;
+  --md-surface-container-low: #fcf7f4;
+  --md-surface-container: #f8f1ed;
+  --md-surface-container-high: #f3ece8;
+  --md-surface-container-highest: #eee6e2;
+  /* 轮廓 / 语义 */
+  --md-outline: #85736a;
+  --md-outline-variant: #d8c7bc;
+  --md-error: #ba1a1a;
+  --md-on-error: #ffffff;
+  --md-error-container: #ffdad6;
+  --md-on-error-container: #410002;
+  --md-scrim: rgba(0, 0, 0, 0.32);
+  --md-inverse-surface: #362f2b;
+  --md-inverse-on-surface: #fbeeeb;
+  /* 形状 / 阴影 */
+  --md-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 3px 1px rgba(0, 0, 0, 0.08);
+  --md-corner-full: 999px;
+  --md-corner-sm: 8px;
+  --md-corner-md: 12px;
+  --md-corner-lg: 16px;
+  --md-corner-xl: 28px;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+  --md-primary: #ffb795;
+  --md-on-primary: #542100;
+  --md-primary-container: #6e3f22;
+  --md-on-primary-container: #ffdbcc;
+  --md-secondary: #e7bdb1;
+  --md-on-secondary: #442a22;
+  --md-secondary-container: #5d3f36;
+  --md-on-secondary-container: #ffdbd0;
+  --md-tertiary: #d8bcb8;
+  --md-on-tertiary: #442a26;
+  --md-surface: #1a1310;
+  --md-on-surface: #f0e0da;
+  --md-surface-variant: #52443d;
+  --md-on-surface-variant: #d8c7bc;
+  --md-surface-container-lowest: #110b08;
+  --md-surface-container-low: #211915;
+  --md-surface-container: #261e1a;
+  --md-surface-container-high: #312820;
+  --md-surface-container-highest: #3c302a;
+  --md-outline: #a08c82;
+  --md-outline-variant: #52443d;
+  --md-error: #ffb4a9;
+  --md-on-error: #680007;
+  --md-error-container: #93000a;
+  --md-on-error-container: #ffdad6;
+  --md-scrim: rgba(0, 0, 0, 0.5);
+  --md-inverse-surface: #f0e0da;
+  --md-inverse-on-surface: #1a1310;
+  --md-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.25);
 }
 
 html,
@@ -14,48 +90,199 @@ body,
 
 body {
   margin: 0;
-  background: #f5f6f8;
-  color: #1f2933;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'PingFang SC',
     'Microsoft YaHei', sans-serif;
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* 紧凑、克制的管理后台风格，不引入重型 UI 库 */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+}
+
+/* ===================== MD3 组件层 ===================== */
 @layer components {
   .card {
-    @apply bg-white border border-gray-200 rounded-md;
+    background: var(--md-surface-container);
+    border: 1px solid var(--md-outline-variant);
+    border-radius: var(--md-corner-md);
+    box-shadow: var(--md-shadow);
   }
+
   .input {
-    @apply w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500;
+    width: 100%;
+    background: var(--md-surface-container-lowest);
+    color: var(--md-on-surface);
+    border: 1px solid var(--md-outline);
+    border-radius: var(--md-corner-sm);
+    padding: 10px 12px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
   }
+  .input:focus {
+    border-color: var(--md-primary);
+    box-shadow: 0 0 0 1px var(--md-primary);
+  }
+
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--md-on-surface-variant);
+    margin-bottom: 6px;
   }
+
   .th {
-    @apply px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide;
+    padding: 12px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--md-on-surface-variant);
   }
   .td {
-    @apply px-3 py-2 text-sm text-gray-700 border-t border-gray-100;
+    padding: 12px;
+    font-size: 14px;
+    color: var(--md-on-surface);
+    border-top: 1px solid var(--md-outline-variant);
   }
+
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: var(--md-corner-full);
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.15s, filter 0.15s, box-shadow 0.15s;
   }
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+    background: var(--md-primary);
+    color: var(--md-on-primary);
+  }
+  .btn-primary:hover {
+    filter: brightness(0.95);
   }
   .btn-secondary {
-    @apply btn border border-gray-300 bg-white text-gray-700 hover:bg-gray-50;
+    background: transparent;
+    color: var(--md-primary);
+    border: 1px solid var(--md-outline);
+  }
+  .btn-secondary:hover {
+    background: var(--md-surface-container-high);
+  }
+  .btn-tonal {
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+  }
+  .btn-tonal:hover {
+    filter: brightness(0.97);
   }
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700;
+    background: var(--md-error);
+    color: var(--md-on-error);
+  }
+  .btn-danger:hover {
+    filter: brightness(0.95);
   }
   .btn-sm {
-    @apply px-2 py-1 text-xs;
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  /* 状态 chip（MD3 风格，圆角胶囊 + 容器色） */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    border-radius: var(--md-corner-full);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .chip-active {
+    background: var(--md-primary-container);
+    color: var(--md-on-primary-container);
+  }
+  .chip-pending {
+    background: #fde9c8;
+    color: #6b4a00;
+  }
+  .chip-rejected,
+  .chip-error,
+  .chip-failure {
+    background: var(--md-error-container);
+    color: var(--md-on-error-container);
+  }
+  .chip-deleting,
+  .chip-expired,
+  .chip-disabled {
+    background: var(--md-surface-container-high);
+    color: var(--md-on-surface-variant);
+  }
+
+  /* MD3 工具类（直接引用令牌，避免 Tailwind 颜色耦合） */
+  .bg-surface {
+    background: var(--md-surface);
+  }
+  .bg-surface-container {
+    background: var(--md-surface-container);
+  }
+  .bg-surface-container-high {
+    background: var(--md-surface-container-high);
+  }
+  .bg-surface-container-lowest {
+    background: var(--md-surface-container-lowest);
+  }
+  .bg-primary {
+    background: var(--md-primary);
+  }
+  .bg-primary-container {
+    background: var(--md-primary-container);
+  }
+  .text-on-surface {
+    color: var(--md-on-surface);
+  }
+  .text-on-surface-variant {
+    color: var(--md-on-surface-variant);
+  }
+  .text-primary {
+    color: var(--md-primary);
+  }
+  .border-outline {
+    border-color: var(--md-outline);
+  }
+  .border-outline-variant {
+    border-color: var(--md-outline-variant);
+  }
+  .hover-bg-high:hover {
+    background: var(--md-surface-container-high);
   }
 }
 
-/* 表格窄屏横向滚动 */
-.table-wrap {
-  @apply overflow-x-auto;
+/* 滚动条轻微着色（克制） */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--md-outline-variant);
+  border-radius: 999px;
 }

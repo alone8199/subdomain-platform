@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiClientError } from '../api'
 import { useToast } from '../context'
-import { PageHeader } from '../components/ui'
+import { Icon } from '../components/ui'
 
 export default function Setup() {
   const [token, setToken] = useState('')
@@ -18,7 +18,7 @@ export default function Setup() {
     setMsg('')
     setLoading(true)
     try {
-      const r = await api.post<{ initialized: boolean }>('/api/auth/setup', {
+      await api.post<{ initialized: boolean }>('/api/auth/setup', {
         setupToken: token,
       })
       setMsg('管理员初始化成功，请使用环境变量中的管理员邮箱与密码登录。')
@@ -33,29 +33,51 @@ export default function Setup() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="card w-full max-w-sm p-6">
-        <PageHeader title="初始化管理员" desc="需要 SETUP_TOKEN（来自环境变量）" />
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <label className="label">SETUP_TOKEN</label>
-            <input
-              className="input"
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="环境变量 SETUP_TOKEN 的值"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-surface p-4">
+      <div className="w-full max-w-sm">
+        <div className="flex items-center justify-center gap-2 mb-6">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
+          >
+            <Icon name="public" size={22} />
           </div>
-          {msg && <div className="text-xs text-green-600">{msg}</div>}
-          {err && <div className="text-xs text-red-600">{err}</div>}
-          <button className="btn-primary w-full" disabled={loading}>
-            {loading ? '初始化中…' : '初始化'}
-          </button>
-        </form>
-        <div className="mt-4 text-xs text-gray-400">
-          管理员邮箱与初始密码取自环境变量 ADMIN_EMAIL / ADMIN_INITIAL_PASSWORD。
+          <span className="text-lg font-medium text-on-surface">子域名分发平台</span>
+        </div>
+        <div className="card p-6">
+          <h1 className="text-xl font-medium text-on-surface">初始化管理员</h1>
+          <p className="text-sm text-on-surface-variant mt-1 mb-4">
+            需要环境变量 <code>SETUP_TOKEN</code> 才能初始化
+          </p>
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <label className="label">SETUP_TOKEN</label>
+              <input
+                className="input"
+                type="password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="环境变量 SETUP_TOKEN 的值"
+                required
+              />
+            </div>
+            {msg && (
+              <div className="text-xs" style={{ color: 'var(--md-primary)' }}>
+                {msg}
+              </div>
+            )}
+            {err && (
+              <div className="text-xs" style={{ color: 'var(--md-error)' }}>
+                {err}
+              </div>
+            )}
+            <button className="btn-primary w-full" disabled={loading}>
+              {loading ? '初始化中…' : '初始化'}
+            </button>
+          </form>
+          <div className="mt-4 text-xs text-on-surface-variant">
+            管理员邮箱与初始密码取自环境变量 ADMIN_EMAIL / ADMIN_INITIAL_PASSWORD。
+          </div>
         </div>
       </div>
     </div>

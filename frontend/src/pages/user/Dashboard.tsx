@@ -1,12 +1,46 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api'
 import { useAuth } from '../../context'
-import { PageHeader, Spinner, EmptyState } from '../../components/ui'
+import { PageHeader, Spinner } from '../../components/ui'
 
 interface Stats {
   total: number
   active: number
   pending: number
+  limit: number
+  monthly_limit: number
+  monthly_used: number
+}
+
+function QuotaRow({
+  label,
+  used,
+  limit,
+}: {
+  label: string
+  used: number
+  limit: number
+}) {
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0
+  return (
+    <div className="mb-4 last:mb-0">
+      <div className="flex justify-between text-sm text-on-surface-variant mb-1">
+        <span>{label}</span>
+        <span>
+          {used} / {limit}
+        </span>
+      </div>
+      <div
+        className="h-2 rounded-full"
+        style={{ background: 'var(--md-surface-container-high)' }}
+      >
+        <div
+          className="h-2 rounded-full"
+          style={{ width: `${pct}%`, background: 'var(--md-primary)' }}
+        />
+      </div>
+    </div>
+  )
 }
 
 export default function UserDashboard() {
@@ -38,18 +72,30 @@ export default function UserDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {cards.map((c) => (
               <div key={c.label} className="card p-4">
-                <div className="text-sm text-gray-500">{c.label}</div>
-                <div className="text-2xl font-semibold text-gray-800 mt-1">
+                <div className="text-sm text-on-surface-variant">{c.label}</div>
+                <div
+                  className="text-2xl font-semibold mt-1"
+                  style={{ color: 'var(--md-on-surface)' }}
+                >
                   {c.value}
                 </div>
               </div>
             ))}
           </div>
-          {stats && stats.total === 0 && (
-            <div className="card mt-4">
-              <EmptyState
-                title="还没有子域名"
-                hint="前往「申请子域名」选择一个根域名并提交前缀即可。"
+          {stats && stats.limit > 0 && (
+            <div className="card mt-4 p-5">
+              <div className="text-sm font-medium text-on-surface mb-3">
+                使用配额
+              </div>
+              <QuotaRow
+                label="子域名数量"
+                used={stats.total}
+                limit={stats.limit}
+              />
+              <QuotaRow
+                label="本月申请次数"
+                used={stats.monthly_used}
+                limit={stats.monthly_limit}
               />
             </div>
           )}
