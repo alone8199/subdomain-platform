@@ -11,7 +11,6 @@ export interface CfDnsRecord {
   name: string
   content: string
   ttl: number
-  proxied: boolean
   zone_id: string
   zone_name?: string
 }
@@ -129,7 +128,6 @@ export class CloudflareApi {
       name: string
       content: string
       ttl: number
-      proxied: boolean
     },
   ): Promise<CfDnsRecord> {
     return this.request<CfDnsRecord>(
@@ -148,7 +146,6 @@ export class CloudflareApi {
       name: string
       content: string
       ttl: number
-      proxied: boolean
     },
   ): Promise<CfDnsRecord> {
     return this.request<CfDnsRecord>(

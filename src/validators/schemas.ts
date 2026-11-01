@@ -78,7 +78,6 @@ export const subdomainApplySchema = z.object({
   record_type: recordTypeSchema.default('CNAME'),
   target: z.string().trim().min(1, '请填写目标内容').max(1024),
   ttl: z.number().int().min(60).max(86400).optional(),
-  proxied: z.boolean().optional().default(false),
   expires_at: z
     .number()
     .int()
@@ -95,7 +94,6 @@ export const rejectSchema = z.object({
 export const subdomainEditSchema = z.object({
   target: z.string().trim().min(1, '请填写目标内容').max(1024),
   ttl: z.number().int().min(60).max(86400).optional(),
-  proxied: z.boolean().optional(),
 })
 
 // -------------------- 用户管理 --------------------

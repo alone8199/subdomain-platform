@@ -59,7 +59,6 @@ export interface SubdomainRow {
   record_type: RecordType
   target: string
   ttl: number
-  proxied: number
   status: SubdomainStatus
   dns_record_id: string | null
   cloudflare_zone_id: string

@@ -86,7 +86,6 @@ async function createDnsAndActivate(
       name: sub.full_domain,
       content: sub.target,
       ttl: sub.ttl,
-      proxied: sub.record_type === 'TXT' ? false : sub.proxied === 1,
     })
   } catch (e) {
     // 创建失败回滚状态为 error，不假装成功
@@ -135,7 +134,6 @@ export async function applySubdomain(
     record_type: string
     target: string
     ttl?: number
-    proxied: boolean
     expires_at?: number | null
   },
 ): Promise<SubdomainRow> {
@@ -191,15 +189,14 @@ export async function applySubdomain(
   await checkConflict(env, zone, fullDomain)
 
   const ttl = input.ttl || zone.default_ttl
-  const proxied = input.record_type === 'TXT' ? false : !!input.proxied
   const subId = newId()
   const now = nowSec()
 
   // 始终先落库为 pending
   await db(env).run(
     `INSERT INTO subdomains
-      (id, user_id, zone_id, root_domain, prefix, full_domain, record_type, target, ttl, proxied, status, dns_record_id, cloudflare_zone_id, expires_at, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, ?, ?)`,
+      (id, user_id, zone_id, root_domain, prefix, full_domain, record_type, target, ttl, status, dns_record_id, cloudflare_zone_id, expires_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', NULL, ?, ?, ?, ?)`,
     subId,
     userId,
     zone.id,
@@ -209,7 +206,6 @@ export async function applySubdomain(
     input.record_type,
     input.target,
     ttl,
-    proxied ? 1 : 0,
     zone.cloudflare_zone_id,
     input.expires_at ?? null,
     now,
@@ -352,7 +348,7 @@ export async function editSubdomain(
   env: Env,
   c: Context | undefined,
   subId: string,
-  input: { target: string; ttl?: number; proxied?: boolean },
+  input: { target: string; ttl?: number },
 ): Promise<SubdomainRow> {
   const sub = await getSubdomainById(db(env), subId)
   if (!sub) throw new ApiError('NOT_FOUND', '子域名不存在', 404)
@@ -362,16 +358,13 @@ export async function editSubdomain(
   const zone = await getZoneById(db(env), sub.zone_id)
   if (!zone) throw new ApiError('ZONE_NOT_FOUND', '根域名不存在', 404)
 
-  const proxied =
-    sub.record_type === 'TXT' ? false : input.proxied ?? sub.proxied === 1
   const ttl = input.ttl ?? sub.ttl
 
   // 先更新本地记录
   await db(env).run(
-    `UPDATE subdomains SET target=?, ttl=?, proxied=?, updated_at=? WHERE id=?`,
+    `UPDATE subdomains SET target=?, ttl=?, updated_at=? WHERE id=?`,
     input.target,
     ttl,
-    proxied ? 1 : 0,
     nowSec(),
     subId,
   )
@@ -385,7 +378,6 @@ export async function editSubdomain(
         name: sub.full_domain,
         content: input.target,
         ttl,
-        proxied,
       })
     } catch (e) {
       await db(env).run(
