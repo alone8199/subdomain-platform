@@ -61,6 +61,9 @@
   --ui-corner-lg: 16px;
   --ui-corner-xl: 24px;
   --ui-corner-full: 999px;
+
+  /* 品牌渐变（主按钮 / 文字渐变共用） */
+  --ui-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
 }
 
 [data-theme='dark'] {
@@ -221,7 +224,7 @@ body {
     border-radius: 8px;
   }
   .ui-btn-primary {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: var(--ui-gradient);
     color: #fff;
     box-shadow: 0 2px 10px rgba(99, 102, 241, 0.35);
   }
@@ -353,7 +356,7 @@ body {
     cursor: not-allowed;
   }
   .ui-switch-on {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: var(--ui-gradient);
   }
   .ui-switch-thumb {
     position: absolute;
@@ -390,7 +393,7 @@ body {
     cursor: not-allowed;
   }
   .ui-checkbox-on {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: var(--ui-gradient);
     border-color: transparent;
   }
 

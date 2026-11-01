@@ -26,9 +26,13 @@ async function request<T>(
   })
 
   if (res.status === 401) {
-    // 未登录或会话过期：跳转登录页
-    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
-      window.location.href = '/login'
+    // 未登录或会话过期：跳转登录页（公开页除外，避免 /setup 等页面被弹走）
+    if (typeof window !== 'undefined') {
+      const p = window.location.pathname
+      const isPublic = p === '/' || p.startsWith('/login') || p.startsWith('/setup')
+      if (!isPublic) {
+        window.location.href = '/login'
+      }
     }
     throw new ApiClientError('UNAUTHENTICATED', '未登录或会话已过期', 401)
   }

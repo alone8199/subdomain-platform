@@ -7,6 +7,7 @@ import {
 } from './components/Layout'
 import Login from './pages/Login'
 import Setup from './pages/Setup'
+import Home from './pages/Home'
 import UserDashboard from './pages/user/Dashboard'
 import UserApply from './pages/user/Apply'
 import UserSubdomains from './pages/user/MySubdomains'
@@ -34,10 +35,10 @@ function RoleRoute({ admin, children }: { admin: boolean; children: JSX.Element 
   return children
 }
 
-function RootRedirect() {
+function RootRoute() {
   const { user, loading } = useAuth()
   if (loading) return <Spinner />
-  if (!user) return <Navigate to="/login" replace />
+  if (!user) return <Home />
   return <Navigate to={user.role === 'admin' ? '/a/dashboard' : '/u/dashboard'} replace />
 }
 
@@ -90,8 +91,8 @@ export default function App() {
         <Route path="audit" element={<AdminAudit />} />
       </Route>
 
-      <Route path="/" element={<RootRedirect />} />
-      <Route path="*" element={<RootRedirect />} />
+      <Route path="/" element={<RootRoute />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

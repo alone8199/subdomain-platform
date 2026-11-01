@@ -76,10 +76,6 @@ export default function Login() {
               {loading ? '登录中…' : '登录'}
             </Button>
           </form>
-          <div className="mt-4 text-xs text-on-surface-variant text-center">
-            首次部署请先到 <a className="text-primary" href="/setup">/setup</a>{' '}
-            初始化管理员
-          </div>
         </div>
       </div>
     </div>
