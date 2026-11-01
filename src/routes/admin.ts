@@ -11,6 +11,7 @@ import {
   userUpdateSchema,
   resetPasswordSchema,
   settingsUpdateSchema,
+  subdomainEditSchema,
 } from '../validators/schemas'
 import { db, getZoneByRootDomain, getZoneById, getUserByEmail } from '../db'
 import { makeCf, CloudflareError } from '../cloudflare/client'
@@ -20,6 +21,7 @@ import {
   rejectSubdomain,
   deleteSubdomain,
   retrySubdomain,
+  editSubdomain,
 } from '../services/subdomain'
 import {
   generateSalt,
@@ -213,9 +215,9 @@ adminRoutes.put('/zones/:id', csrfMiddleware, async (c) => {
 adminRoutes.delete('/zones/:id', csrfMiddleware, async (c) => {
   const z = await getZoneById(db(c.env), c.req.param('id'))
   if (!z) return fail(c, 'NOT_FOUND', '根域名不存在', 404)
-  // 存在活跃子域名则阻止删除
+  // 存在活跃/待处理/删除中/错误（孤儿）子域名则阻止删除
   const blocking = await db(c.env).get<{ n: number }>(
-    `SELECT COUNT(*) AS n FROM subdomains WHERE zone_id = ? AND status IN ('pending','active','deleting')`,
+    `SELECT COUNT(*) AS n FROM subdomains WHERE zone_id = ? AND status IN ('pending','active','deleting','error')`,
     z.id,
   )
   if ((blocking?.n ?? 0) > 0) {
@@ -330,6 +332,31 @@ adminRoutes.get('/subdomains', async (c) => {
     ' ORDER BY created_at DESC'
   const rows = await db(c.env).all<any>(sql, ...params)
   return ok(c, rows)
+})
+
+adminRoutes.put('/subdomains/:id', csrfMiddleware, async (c) => {
+  const parsed = subdomainEditSchema.safeParse(
+    await c.req.json().catch(() => ({})),
+  )
+  if (!parsed.success) {
+    return fail(
+      c,
+      'INVALID_INPUT',
+      parsed.error.issues[0]?.message ?? '参数错误',
+      422,
+    )
+  }
+  try {
+    const updated = await editSubdomain(c.env, c, c.req.param('id'), parsed.data)
+    return ok(c, {
+      id: updated.id,
+      status: updated.status,
+      error_message: updated.error_message,
+    })
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'INTERNAL', '服务器错误', 500)
+  }
 })
 
 adminRoutes.post('/subdomains/:id/delete', csrfMiddleware, async (c) => {

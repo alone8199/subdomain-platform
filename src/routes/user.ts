@@ -4,13 +4,14 @@ import { ok, fail } from '../utils/response'
 import { authMiddleware } from '../middleware/auth'
 import { csrfMiddleware } from '../middleware/csrf'
 import { applyRateLimit } from '../middleware/ratelimit'
-import { subdomainApplySchema } from '../validators/schemas'
+import { subdomainApplySchema, subdomainEditSchema } from '../validators/schemas'
 import { db } from '../db'
 import { ApiError } from '../utils/error'
 import {
   applySubdomain,
   deleteSubdomain,
   retrySubdomain,
+  editSubdomain,
 } from '../services/subdomain'
 import { verifyPassword, generateSalt, hashPassword } from '../auth/password'
 import { audit } from '../utils/audit'
@@ -98,6 +99,40 @@ userRoutes.get('/subdomains/:id', async (c) => {
   )
   if (!sub) return fail(c, 'NOT_FOUND', '子域名不存在', 404)
   return ok(c, sub)
+})
+
+// 编辑子域名（仅本人、仅 active）
+userRoutes.put('/subdomains/:id', csrfMiddleware, async (c) => {
+  const user = c.get('user')
+  const id = c.req.param('id')
+  const owned = await db(c.env).get<any>(
+    'SELECT id FROM subdomains WHERE id = ? AND user_id = ?',
+    id,
+    user.id,
+  )
+  if (!owned) return fail(c, 'NOT_FOUND', '子域名不存在', 404)
+  const parsed = subdomainEditSchema.safeParse(
+    await c.req.json().catch(() => ({})),
+  )
+  if (!parsed.success) {
+    return fail(
+      c,
+      'INVALID_INPUT',
+      parsed.error.issues[0]?.message ?? '参数错误',
+      422,
+    )
+  }
+  try {
+    const updated = await editSubdomain(c.env, c, id, parsed.data)
+    return ok(c, {
+      id: updated.id,
+      status: updated.status,
+      error_message: updated.error_message,
+    })
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'INTERNAL', '服务器错误', 500)
+  }
 })
 
 // 申请删除（仅本人）

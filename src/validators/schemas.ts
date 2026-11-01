@@ -91,6 +91,13 @@ export const rejectSchema = z.object({
   reason: z.string().trim().min(1, '请填写拒绝原因').max(500),
 })
 
+// 编辑已激活子域名（同步更新 DNS）
+export const subdomainEditSchema = z.object({
+  target: z.string().trim().min(1, '请填写目标内容').max(1024),
+  ttl: z.number().int().min(60).max(86400).optional(),
+  proxied: z.boolean().optional(),
+})
+
 // -------------------- 用户管理 --------------------
 export const userCreateSchema = z.object({
   email: emailSchema,

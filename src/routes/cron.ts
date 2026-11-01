@@ -10,6 +10,7 @@ export async function runExpiredCleanup(env: Env): Promise<{
   checked: number
   cleaned: number
   failed: number
+  sessionsCleaned: number
 }> {
   const now = nowSec()
   const expired = await db(env).all<{
@@ -63,5 +64,11 @@ export async function runExpiredCleanup(env: Env): Promise<{
     cleaned++
   }
 
-  return { checked: expired.length, cleaned, failed }
+  // 清理过期会话（Cookie 失效后 DB 行仍残留，避免无限增长）
+  const expiredSessions = await db(env).run(
+    'DELETE FROM sessions WHERE expires_at IS NOT NULL AND expires_at < ?',
+    now,
+  )
+
+  return { checked: expired.length, cleaned, failed, sessionsCleaned: expiredSessions.meta.changes ?? 0 }
 }

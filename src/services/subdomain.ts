@@ -151,6 +151,17 @@ export async function applySubdomain(
     throw new ApiError('RESERVED_PREFIX', '该前缀为保留词，不可使用', 422)
   }
   const fullDomain = `${input.prefix}.${zone.root_domain}`.toLowerCase()
+
+  // 被拒绝 / 创建失败（无 CF 记录）的旧申请可清理，允许同一前缀重新申请
+  const old = await getSubdomainByFullDomain(db(env), fullDomain)
+  if (
+    old &&
+    (old.status === 'rejected' ||
+      (old.status === 'error' && !old.dns_record_id))
+  ) {
+    await db(env).run('DELETE FROM subdomains WHERE id = ?', old.id)
+  }
+
   await checkConflict(env, zone, fullDomain)
 
   const ttl = input.ttl || zone.default_ttl
@@ -310,5 +321,76 @@ export async function retrySubdomain(
   const zone = await getZoneById(db(env), sub.zone_id)
   if (!zone) throw new ApiError('ZONE_NOT_FOUND', '根域名不存在', 404)
   await createDnsAndActivate(env, zone, sub, c)
+  return (await getSubdomainById(db(env), subId))!
+}
+
+// 编辑已激活子域名并同步到 Cloudflare（使用各自根域名的 zone_id）
+export async function editSubdomain(
+  env: Env,
+  c: Context | undefined,
+  subId: string,
+  input: { target: string; ttl?: number; proxied?: boolean },
+): Promise<SubdomainRow> {
+  const sub = await getSubdomainById(db(env), subId)
+  if (!sub) throw new ApiError('NOT_FOUND', '子域名不存在', 404)
+  if (sub.status !== 'active') {
+    throw new ApiError('NOT_ACTIVE', '仅已激活的子域名可编辑', 409)
+  }
+  const zone = await getZoneById(db(env), sub.zone_id)
+  if (!zone) throw new ApiError('ZONE_NOT_FOUND', '根域名不存在', 404)
+
+  const proxied =
+    sub.record_type === 'TXT' ? false : input.proxied ?? sub.proxied === 1
+  const ttl = input.ttl ?? sub.ttl
+
+  // 先更新本地记录
+  await db(env).run(
+    `UPDATE subdomains SET target=?, ttl=?, proxied=?, updated_at=? WHERE id=?`,
+    input.target,
+    ttl,
+    proxied ? 1 : 0,
+    nowSec(),
+    subId,
+  )
+
+  // 已创建 CF 记录的才需要同步；使用所属根域名的 zone_id
+  if (sub.dns_record_id) {
+    const cf = makeCf(env)
+    try {
+      await cf.updateDns(zone.cloudflare_zone_id, sub.dns_record_id, {
+        type: sub.record_type,
+        name: sub.full_domain,
+        content: input.target,
+        ttl,
+        proxied,
+      })
+    } catch (e) {
+      await db(env).run(
+        `UPDATE subdomains SET status='error', error_message=?, updated_at=? WHERE id=?`,
+        sanitizeCfError(e),
+        nowSec(),
+        subId,
+      )
+      await audit(env, {
+        action: 'dns_update',
+        target: sub.full_domain,
+        rootDomain: zone.root_domain,
+        zoneId: zone.cloudflare_zone_id,
+        result: 'failure',
+        detail: sanitizeCfError(e),
+        c,
+      })
+      throw new ApiError('CF_UPDATE_FAILED', sanitizeCfError(e), 502)
+    }
+    await audit(env, {
+      action: 'dns_update',
+      target: sub.full_domain,
+      rootDomain: zone.root_domain,
+      zoneId: zone.cloudflare_zone_id,
+      result: 'success',
+      detail: `record_id=${sub.dns_record_id}`,
+      c,
+    })
+  }
   return (await getSubdomainById(db(env), subId))!
 }
