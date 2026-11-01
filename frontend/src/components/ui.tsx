@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { CSSProperties } from 'react'
 
 /* =====================================================================
@@ -360,7 +361,9 @@ export function Dialog({
   width?: 'normal' | 'wide'
 }) {
   if (!open) return null
-  return (
+  // 用 Portal 渲染到 body：毛玻璃卡片（backdrop-filter）会创建 containing block，
+  // 导致内部 fixed 遮罩只覆盖卡片区域而不是全屏。
+  return createPortal(
     <div className="ui-modal-mask" onClick={onClose}>
       <div
         className="ui-modal"
@@ -376,7 +379,8 @@ export function Dialog({
         <div className="ui-modal-body">{children}</div>
         {footer && <div className="ui-modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
