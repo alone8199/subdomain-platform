@@ -320,23 +320,26 @@ export async function deleteRecord(
     try {
       await cf.deleteDns(sub.cloudflare_zone_id, rec.cf_record_id)
     } catch (e) {
-      await db(env).run(
-        `UPDATE dns_records SET status='error', error_message=?, updated_at=? WHERE id=?`,
-        sanitizeCfError(e),
-        nowSec(),
-        rec.id,
-      )
-      await audit(env, {
-        action: 'record_delete',
-        actorId: userId,
-        target: fullName(sub, rec.name),
-        rootDomain: sub.root_domain,
-        zoneId: sub.cloudflare_zone_id,
-        result: 'failure',
-        detail: sanitizeCfError(e),
-        c,
-      })
-      throw new ApiError('CF_DELETE_FAILED', sanitizeCfError(e), 502)
+      // Cloudflare 上已不存在（被人手动删过）：视为已删除，正常清理本地行
+      if (!isRecordMissing(e)) {
+        await db(env).run(
+          `UPDATE dns_records SET status='error', error_message=?, updated_at=? WHERE id=?`,
+          sanitizeCfError(e),
+          nowSec(),
+          rec.id,
+        )
+        await audit(env, {
+          action: 'record_delete',
+          actorId: userId,
+          target: fullName(sub, rec.name),
+          rootDomain: sub.root_domain,
+          zoneId: sub.cloudflare_zone_id,
+          result: 'failure',
+          detail: sanitizeCfError(e),
+          c,
+        })
+        throw new ApiError('CF_DELETE_FAILED', sanitizeCfError(e), 502)
+      }
     }
   }
   await db(env).run('DELETE FROM dns_records WHERE id = ?', rec.id)
@@ -351,23 +354,37 @@ export async function deleteRecord(
   })
 }
 
+// 判断是否为「记录在 Cloudflare 上已不存在」的错误（幂等删除场景）
+export function isRecordMissing(e: unknown): boolean {
+  if (!(e instanceof CloudflareError)) return false
+  return /does not exist|not found/i.test(e.message) || e.status === 404
+}
+
 // 删除子域名时级联删除其全部解析记录（供 deleteSubdomain 调用）
+// 返回本次已处理（删除成功或本就不存在）的 Cloudflare 记录 ID 集合，
+// 调用方据此跳过重复删除（根记录与 sub.dns_record_id 是同一条 CF 记录）。
 export async function deleteAllRecordsForSubdomain(
   env: Env,
   sub: SubdomainRow,
-): Promise<void> {
+): Promise<string[]> {
   const rows = await db(env).all<DnsRecordRow>(
     'SELECT * FROM dns_records WHERE subdomain_id = ?',
     sub.id,
   )
   const cf = makeCf(env)
+  const handled: string[] = []
   const failed: string[] = []
   for (const r of rows) {
     if (!r.cf_record_id) continue
     try {
       await cf.deleteDns(sub.cloudflare_zone_id, r.cf_record_id)
-    } catch {
-      failed.push(r.id)
+      handled.push(r.cf_record_id)
+    } catch (e) {
+      if (isRecordMissing(e)) {
+        handled.push(r.cf_record_id)
+      } else {
+        failed.push(r.id)
+      }
     }
   }
   await db(env).run('DELETE FROM dns_records WHERE subdomain_id = ?', sub.id)
@@ -378,4 +395,5 @@ export async function deleteAllRecordsForSubdomain(
       502,
     )
   }
+  return handled
 }

@@ -7,7 +7,7 @@ import {
   getSubdomainByFullDomain,
 } from '../db'
 import { makeCf, CloudflareError } from '../cloudflare/client'
-import { deleteAllRecordsForSubdomain } from './dnsrecord'
+import { deleteAllRecordsForSubdomain, isRecordMissing } from './dnsrecord'
 import { ApiError } from '../utils/error'
 import { audit } from '../utils/audit'
 import { newId, nowSec } from '../utils/id'
@@ -298,32 +298,36 @@ export async function deleteSubdomain(
   const sub = await getSubdomainById(db(env), subId)
   if (!sub) throw new ApiError('NOT_FOUND', '子域名不存在', 404)
 
-  // 级联删除该子域名名下的全部解析记录（dns_records 表，含子域解析）
-  await deleteAllRecordsForSubdomain(env, sub)
+  // 级联删除该子域名名下的全部解析记录（dns_records 表，含子域解析）。
+  // 返回已处理的 CF 记录 ID：根记录与 sub.dns_record_id 是同一条 CF 记录，需跳过重复删除。
+  const handledCfIds = await deleteAllRecordsForSubdomain(env, sub)
 
-  // 仅当存在 CF DNS 记录时才调用删除（平台创建的根记录，兼容旧数据）
-  if (sub.dns_record_id) {
+  // 仅当存在 CF DNS 记录且未被级联删除时才调用（兼容旧数据）
+  if (sub.dns_record_id && !handledCfIds.includes(sub.dns_record_id)) {
     const cf = makeCf(env)
     try {
       await cf.deleteDns(sub.cloudflare_zone_id, sub.dns_record_id)
     } catch (e) {
-      // 删除失败：保留记录并标记 error，便于重试/排查，不假装成功
-      await db(env).run(
-        `UPDATE subdomains SET status='error', error_message=?, updated_at=? WHERE id=?`,
-        sanitizeCfError(e),
-        nowSec(),
-        subId,
-      )
-      await audit(env, {
-        action: 'dns_delete',
-        target: sub.full_domain,
-        rootDomain: sub.root_domain,
-        zoneId: sub.cloudflare_zone_id,
-        result: 'failure',
-        detail: sanitizeCfError(e),
-        c,
-      })
-      throw new ApiError('CF_DELETE_FAILED', sanitizeCfError(e), 502)
+      // 记录在 Cloudflare 上已不存在：视为删除成功，继续清理
+      if (!isRecordMissing(e)) {
+        // 删除失败：保留记录并标记 error，便于重试/排查，不假装成功
+        await db(env).run(
+          `UPDATE subdomains SET status='error', error_message=?, updated_at=? WHERE id=?`,
+          sanitizeCfError(e),
+          nowSec(),
+          subId,
+        )
+        await audit(env, {
+          action: 'dns_delete',
+          target: sub.full_domain,
+          rootDomain: sub.root_domain,
+          zoneId: sub.cloudflare_zone_id,
+          result: 'failure',
+          detail: sanitizeCfError(e),
+          c,
+        })
+        throw new ApiError('CF_DELETE_FAILED', sanitizeCfError(e), 502)
+      }
     }
     await audit(env, {
       action: 'dns_delete',
