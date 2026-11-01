@@ -523,13 +523,23 @@ adminRoutes.post('/users/:id/toggle-admin', csrfMiddleware, async (c) => {
 
 // -------------------- 系统设置 --------------------
 adminRoutes.get('/settings', async (c) => {
-  const reg = await db(c.env).get<{ value: string }>(
-    'SELECT value FROM settings WHERE key = ?',
-    'registration_enabled',
-  )
-  return ok(c, {
-    registration_enabled: reg?.value === '1',
-  })
+  const keys = [
+    ['registration_enabled', '0'],
+    ['max_subdomains_per_user', '10'],
+    ['max_applications_per_month', '30'],
+  ] as const
+  const out: Record<string, string | number | boolean> = {}
+  for (const [key, def] of keys) {
+    const row = await db(c.env).get<{ value: string }>(
+      'SELECT value FROM settings WHERE key = ?',
+      key,
+    )
+    out[key] = row?.value ?? def
+  }
+  out.registration_enabled = out.registration_enabled === '1'
+  out.max_subdomains_per_user = Number(out.max_subdomains_per_user)
+  out.max_applications_per_month = Number(out.max_applications_per_month)
+  return ok(c, out)
 })
 
 adminRoutes.put('/settings', csrfMiddleware, async (c) => {
@@ -537,22 +547,45 @@ adminRoutes.put('/settings', csrfMiddleware, async (c) => {
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
   }
+  const actor = c.get('user')
+  const updates: [string, string, string][] = []
   if (parsed.data.registration_enabled !== undefined) {
-    await db(c.env).run(
-      'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?',
+    updates.push([
       'registration_enabled',
       parsed.data.registration_enabled ? '1' : '0',
+      `公开注册=${parsed.data.registration_enabled}`,
+    ])
+  }
+  if (parsed.data.max_subdomains_per_user !== undefined) {
+    updates.push([
+      'max_subdomains_per_user',
+      String(parsed.data.max_subdomains_per_user),
+      `每用户子域名上限=${parsed.data.max_subdomains_per_user}`,
+    ])
+  }
+  if (parsed.data.max_applications_per_month !== undefined) {
+    updates.push([
+      'max_applications_per_month',
+      String(parsed.data.max_applications_per_month),
+      `每月申请上限=${parsed.data.max_applications_per_month}`,
+    ])
+  }
+  for (const [key, value, detail] of updates) {
+    await db(c.env).run(
+      'INSERT INTO settings (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = ?, updated_at = ?',
+      key,
+      value,
       nowSec(),
-      parsed.data.registration_enabled ? '1' : '0',
+      value,
       nowSec(),
     )
     await audit(c.env, {
       action: 'user_change',
-      actorId: c.get('user').id,
-      actorEmail: c.get('user').email,
+      actorId: actor.id,
+      actorEmail: actor.email,
       target: 'settings',
       result: 'success',
-      detail: `公开注册=${parsed.data.registration_enabled}`,
+      detail,
       c,
     })
   }

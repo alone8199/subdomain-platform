@@ -30,8 +30,9 @@ userRoutes.get('/zones', async (c) => {
     allowed_types: string
     default_ttl: number
     auto_approve: number
+    reserved_words: string
   }>(
-    'SELECT id, root_domain, allowed_types, default_ttl, auto_approve FROM zones WHERE enabled = 1 ORDER BY root_domain',
+    'SELECT id, root_domain, allowed_types, default_ttl, auto_approve, reserved_words FROM zones WHERE enabled = 1 ORDER BY root_domain',
   )
   return ok(c, zones)
 })
@@ -173,7 +174,7 @@ userRoutes.post('/subdomains/:id/retry', csrfMiddleware, async (c) => {
   }
 })
 
-// 用户中心统计
+// 用户中心统计（含平台限制额度）
 userRoutes.get('/stats', async (c) => {
   const user = c.get('user')
   const total = await db(c.env).get<{ n: number }>(
@@ -190,10 +191,26 @@ userRoutes.get('/stats', async (c) => {
     user.id,
     'pending',
   )
+  const maxSub = Number(
+    (await db(c.env).get<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'max_subdomains_per_user'))?.value ?? 10,
+  )
+  const maxMonth = Number(
+    (await db(c.env).get<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'max_applications_per_month'))?.value ?? 30,
+  )
+  const d = new Date()
+  const monthStart = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000)
+  const monthUsed = await db(c.env).get<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM subdomains WHERE user_id = ? AND created_at >= ?',
+    user.id,
+    monthStart,
+  )
   return ok(c, {
     total: total?.n ?? 0,
     active: active?.n ?? 0,
     pending: pending?.n ?? 0,
+    limit: maxSub,
+    monthly_limit: maxMonth,
+    monthly_used: monthUsed?.n ?? 0,
   })
 })
 

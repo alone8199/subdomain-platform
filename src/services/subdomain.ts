@@ -144,6 +144,32 @@ export async function applySubdomain(
   if (!zone.enabled) {
     throw new ApiError('ZONE_DISABLED', '该根域名已禁用，暂不可申请', 403)
   }
+
+  // ---- 平台限制：每用户子域名数量上限 + 每月申请次数上限 ----
+  const maxSub = Number(
+    (await db(env).get<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'max_subdomains_per_user'))?.value ?? 10,
+  )
+  const maxMonth = Number(
+    (await db(env).get<{ value: string }>('SELECT value FROM settings WHERE key = ?', 'max_applications_per_month'))?.value ?? 30,
+  )
+  const owned = await db(env).get<{ n: number }>(
+    "SELECT COUNT(*) AS n FROM subdomains WHERE user_id = ? AND status != 'rejected'",
+    userId,
+  )
+  if ((owned?.n ?? 0) >= maxSub) {
+    throw new ApiError('LIMIT_REACHED', `已达到每用户子域名数量上限（${maxSub} 个）`, 429)
+  }
+  const d = new Date()
+  const monthStart = Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) / 1000)
+  const monthCount = await db(env).get<{ n: number }>(
+    'SELECT COUNT(*) AS n FROM subdomains WHERE user_id = ? AND created_at >= ?',
+    userId,
+    monthStart,
+  )
+  if ((monthCount?.n ?? 0) >= maxMonth) {
+    throw new ApiError('MONTH_LIMIT', `本月申请次数已达上限（${maxMonth} 次）`, 429)
+  }
+
   if (!isTypeAllowed(input.record_type, zone)) {
     throw new ApiError('TYPE_NOT_ALLOWED', '该根域名不支持此记录类型', 422)
   }
@@ -202,12 +228,9 @@ export async function applySubdomain(
     c,
   })
 
-  // 自动审批：校验通过后直接创建 DNS
-  if (zone.auto_approve) {
-    await createDnsAndActivate(env, zone, sub, c)
-    return (await getSubdomainById(db(env), subId))!
-  }
-  return sub
+  // 自动通过：申请校验通过后直接创建 DNS 并激活（用户申请即开通）
+  await createDnsAndActivate(env, zone, sub, c)
+  return (await getSubdomainById(db(env), subId))!
 }
 
 // 管理员审批通过：创建 DNS 并激活

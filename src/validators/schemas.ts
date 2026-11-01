@@ -117,4 +117,6 @@ export const resetPasswordSchema = z.object({
 // -------------------- 设置 --------------------
 export const settingsUpdateSchema = z.object({
   registration_enabled: z.boolean().optional(),
+  max_subdomains_per_user: z.number().int().min(1).max(1000).optional(),
+  max_applications_per_month: z.number().int().min(1).max(10000).optional(),
 })
