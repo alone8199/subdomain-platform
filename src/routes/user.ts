@@ -4,7 +4,7 @@ import { ok, fail } from '../utils/response'
 import { authMiddleware } from '../middleware/auth'
 import { csrfMiddleware } from '../middleware/csrf'
 import { applyRateLimit } from '../middleware/ratelimit'
-import { subdomainApplySchema, subdomainEditSchema } from '../validators/schemas'
+import { subdomainApplySchema, subdomainEditSchema, recordCreateSchema, recordEditSchema } from '../validators/schemas'
 import { db } from '../db'
 import { ApiError } from '../utils/error'
 import {
@@ -13,6 +13,12 @@ import {
   retrySubdomain,
   editSubdomain,
 } from '../services/subdomain'
+import {
+  listRecords,
+  addRecord,
+  editRecord,
+  deleteRecord,
+} from '../services/dnsrecord'
 import { verifyPassword, generateSalt, hashPassword } from '../auth/password'
 import { audit } from '../utils/audit'
 import { clientIp } from '../utils/ip'
@@ -173,6 +179,76 @@ userRoutes.post('/subdomains/:id/retry', csrfMiddleware, async (c) => {
     return fail(c, 'INTERNAL', '服务器错误', 500)
   }
 })
+
+// -------------------- 解析记录管理（对已申请的子域名独立配置解析） --------------------
+
+// 记录列表
+userRoutes.get('/subdomains/:id/records', async (c) => {
+  const user = c.get('user')
+  try {
+    const rows = await listRecords(c.env, user.id, c.req.param('id'))
+    return ok(c, rows)
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'INTERNAL', '服务器错误', 500)
+  }
+})
+
+// 添加解析记录：name 留空 = 根解析（test.neob.asia 本身）；name 填 www = www.test.neob.asia
+userRoutes.post('/subdomains/:id/records', csrfMiddleware, async (c) => {
+  const user = c.get('user')
+  const parsed = recordCreateSchema.safeParse(
+    await c.req.json().catch(() => ({})),
+  )
+  if (!parsed.success) {
+    return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
+  }
+  try {
+    const rec = await addRecord(c.env, c, user.id, c.req.param('id'), parsed.data)
+    return ok(c, rec, 201)
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'INTERNAL', '服务器错误', 500)
+  }
+})
+
+// 编辑解析记录（内容 / TTL）
+userRoutes.put('/subdomains/:id/records/:rid', csrfMiddleware, async (c) => {
+  const user = c.get('user')
+  const parsed = recordEditSchema.safeParse(
+    await c.req.json().catch(() => ({})),
+  )
+  if (!parsed.success) {
+    return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
+  }
+  try {
+    const rec = await editRecord(
+      c.env,
+      c,
+      user.id,
+      c.req.param('id'),
+      c.req.param('rid'),
+      parsed.data,
+    )
+    return ok(c, rec)
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'INTERNAL', '服务器错误', 500)
+  }
+})
+
+// 删除解析记录
+userRoutes.post('/subdomains/:id/records/:rid/delete', csrfMiddleware, async (c) => {
+  const user = c.get('user')
+  try {
+    await deleteRecord(c.env, c, user.id, c.req.param('id'), c.req.param('rid'))
+    return ok(c, { deleted: true })
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'INTERNAL', '服务器错误', 500)
+  }
+})
+
 
 // 用户中心统计（含平台限制额度）
 userRoutes.get('/stats', async (c) => {

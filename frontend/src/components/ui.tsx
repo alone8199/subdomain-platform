@@ -341,17 +341,23 @@ export function Dialog({
   children,
   onClose,
   footer,
+  width,
 }: {
   open: boolean
   title: string
   children: ReactNode
   onClose: () => void
   footer?: ReactNode
+  width?: 'normal' | 'wide'
 }) {
   if (!open) return null
   return (
     <div className="ui-modal-mask" onClick={onClose}>
-      <div className="ui-modal" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="ui-modal"
+        style={width === 'wide' ? { maxWidth: '760px', width: '94vw' } : undefined}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="ui-modal-head">
           <h2 className="ui-modal-title">{title}</h2>
           <button className="ui-modal-x" onClick={onClose} aria-label="关闭">

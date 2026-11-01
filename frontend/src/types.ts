@@ -85,3 +85,19 @@ export interface ApiError {
   code: string
   message: string
 }
+
+// 子域名名下的解析记录（根解析 name=''，子域解析 name='www' 等）
+export interface DnsRecord {
+  id: string
+  subdomain_id: string
+  user_id: string
+  name: string
+  record_type: string
+  content: string
+  ttl: number
+  cf_record_id: string | null
+  status: string
+  error_message: string | null
+  created_at: number
+  updated_at: number
+}

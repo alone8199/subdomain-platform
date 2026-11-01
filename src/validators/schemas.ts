@@ -96,6 +96,25 @@ export const subdomainEditSchema = z.object({
   ttl: z.number().int().min(60).max(86400).optional(),
 })
 
+// 解析记录：name 为相对名（空/'@' = 子域本身，'www' = www.子域）
+export const recordCreateSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(100)
+    .optional()
+    .default(''),
+  record_type: recordTypeSchema,
+  content: z.string().trim().min(1, '请填写记录值').max(1024),
+  ttl: z.number().int().min(60).max(86400).optional(),
+})
+
+export const recordEditSchema = z.object({
+  content: z.string().trim().min(1, '请填写记录值').max(1024),
+  ttl: z.number().int().min(60).max(86400).optional(),
+})
+
 // -------------------- 用户管理 --------------------
 export const userCreateSchema = z.object({
   email: emailSchema,

@@ -16,6 +16,13 @@ const PORT = Number(process.env.PORT) || 3000
 const now = () => Math.floor(Date.now() / 1000)
 const rand = (n = 10) => randomBytes(n).toString('hex')
 const rid = () => 'rec_' + rand(8)
+// 解析记录表（模拟 dns_records）：每条子域名可有多条记录，name ''/'@' 表示根解析
+const dnsRecords = []
+const mkRecord = (subId, userId, name, type, content, ttl = 300) => ({
+  id: randomUUID(), subdomain_id: subId, user_id: userId, name,
+  record_type: type, content, ttl, cf_record_id: rid(),
+  status: 'active', error_message: null, created_at: now(), updated_at: now(),
+})
 const zid = () => 'zone_' + rand(8)
 
 // ---------------- 内存数据 ----------------
@@ -218,13 +225,13 @@ async function handleApi(req, res, url) {
       }))
       return ok(res, list)
     }
-    if (seg[2] === 'subdomains' && method === 'GET') {
+    if (seg[2] === 'subdomains' && !seg[3] && method === 'GET') {
       let list = subdomains.filter((s) => s.user_id === currentUser.email)
       const zf = q.get('zone_id')
       if (zf) list = list.filter((s) => s.zone_id === zf)
       return ok(res, list)
     }
-    if (seg[2] === 'subdomains' && method === 'POST') {
+    if (seg[2] === 'subdomains' && !seg[3] && method === 'POST') {
       const b = await readBody(req)
       const zone = zones.find((z) => z.id === b.zone_id)
       if (!zone) return fail(res, 'ZONE_NOT_FOUND', '根域名不存在', 404)
@@ -243,8 +250,10 @@ async function handleApi(req, res, url) {
       if (monthCount >= maxApplicationsPerMonth) return fail(res, 'MONTH_LIMIT', `本月申请次数已达上限（${maxApplicationsPerMonth} 次）`, 429)
       // 自动通过：创建即 active 并写 DNS 记录
       const sub = mkSub(prefix, zone.root_domain, zone.id, b.record_type || 'CNAME', b.target, currentUser.email, 'active', now(), b.expires_at ?? null)
-      sub.dns_record_id = 'rec_' + rand(8)
+      sub.dns_record_id = rid()
       subdomains.push(sub)
+      // 根解析记录同步登记（name=''）
+      dnsRecords.push(mkRecord(sub.id, currentUser.email, '', b.record_type || 'CNAME', b.target, sub.ttl))
       audit.unshift(mkAudit('apply', full, 'success', '用户提交申请（自动通过）', '127.0.0.1', zone.root_domain, zone.cloudflare_zone_id))
       audit.unshift(mkAudit('dns_create', full, 'success', 'record_id=' + sub.dns_record_id, '127.0.0.1', zone.root_domain, zone.cloudflare_zone_id))
       return ok(res, sub)
@@ -254,8 +263,54 @@ async function handleApi(req, res, url) {
       const sub = subdomains.find((s) => s.id === id)
       if (!sub) return fail(res, 'NOT_FOUND', '子域名不存在', 404)
       if (sub.user_id !== currentUser.email) return fail(res, 'FORBIDDEN', '无权操作该资源', 403)
+      // ---- 解析记录管理 ----
+      if (seg[4] === 'records') {
+        const rid2 = seg[5]
+        if (!rid2 && method === 'GET') {
+          return ok(res, dnsRecords.filter((r) => r.subdomain_id === id))
+        }
+        if (!rid2 && method === 'POST') {
+          const b = await readBody(req)
+          const type = String(b.record_type || 'A').toUpperCase()
+          if (!['A', 'AAAA', 'CNAME', 'TXT'].includes(type)) return fail(res, 'TYPE_NOT_ALLOWED', '记录类型仅支持 A/AAAA/CNAME/TXT', 422)
+          const name = String(b.name || '').toLowerCase().trim()
+          if (name && !/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?){0,2}$/.test(name))
+            return fail(res, 'INVALID_NAME', '记录名格式不正确（每段仅字母数字连字符，最多 3 级）', 422)
+          const full2 = name ? `${name}.${sub.full_domain}` : sub.full_domain
+          const rows = dnsRecords.filter((r) => r.subdomain_id === id && r.name === name)
+          const hasCname = rows.some((r) => r.record_type === 'CNAME')
+          if ((type === 'CNAME' || hasCname) && rows.length > 0)
+            return fail(res, 'RECORD_EXISTS', `${full2} 已存在解析记录（CNAME 不可与其他记录共存）`, 409)
+          if (rows.some((r) => r.record_type === type))
+            return fail(res, 'RECORD_EXISTS', `${full2} 已存在 ${type} 记录`, 409)
+          if (dnsRecords.filter((r) => r.subdomain_id === id).length >= 20)
+            return fail(res, 'RECORD_LIMIT', '每个子域名最多 20 条解析记录', 429)
+          if (!b.content) return fail(res, 'INVALID_CONTENT', '请填写记录值', 422)
+          const rec = mkRecord(id, currentUser.email, name, type, String(b.content), Number(b.ttl) || 300)
+          dnsRecords.push(rec)
+          audit.unshift(mkAudit('record_create', full2, 'success', `type=${type}`, '127.0.0.1', sub.root_domain, sub.cloudflare_zone_id))
+          return ok(res, rec, 201)
+        }
+        const rec = dnsRecords.find((r) => r.id === rid2 && r.subdomain_id === id)
+        if (!rec) return fail(res, 'NOT_FOUND', '解析记录不存在', 404)
+        if (seg[6] === 'delete' && method === 'POST') {
+          const i = dnsRecords.indexOf(rec); dnsRecords.splice(i, 1)
+          return ok(res, { deleted: true })
+        }
+        if (!seg[6] && method === 'PUT') {
+          const b = await readBody(req)
+          if (b.content != null) rec.content = b.content
+          if (b.ttl != null) rec.ttl = Number(b.ttl)
+          rec.updated_at = now()
+          return ok(res, rec)
+        }
+      }
       if (seg[4] === 'delete' && method === 'POST') {
         const i = subdomains.indexOf(sub); subdomains.splice(i, 1)
+        // 级联删除解析记录
+        for (let j = dnsRecords.length - 1; j >= 0; j--) {
+          if (dnsRecords[j].subdomain_id === id) dnsRecords.splice(j, 1)
+        }
         audit.unshift(mkAudit('delete', sub.full_domain, 'success', '用户删除子域名', '127.0.0.1', sub.root_domain, sub.cloudflare_zone_id))
         return ok(res, {})
       }
@@ -372,7 +427,7 @@ async function handleApi(req, res, url) {
         return ok(res, s)
       }
     }
-    if (seg[2] === 'subdomains' && method === 'GET') {
+    if (seg[2] === 'subdomains' && !seg[3] && method === 'GET') {
       let list = [...subdomains]
       const zf = q.get('zone_id'); if (zf) list = list.filter((s) => s.zone_id === zf)
       const st = q.get('status'); if (st) list = list.filter((s) => s.status === st)

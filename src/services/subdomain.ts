@@ -7,6 +7,7 @@ import {
   getSubdomainByFullDomain,
 } from '../db'
 import { makeCf, CloudflareError } from '../cloudflare/client'
+import { deleteAllRecordsForSubdomain } from './dnsrecord'
 import { ApiError } from '../utils/error'
 import { audit } from '../utils/audit'
 import { newId, nowSec } from '../utils/id'
@@ -109,6 +110,16 @@ async function createDnsAndActivate(
   await db(env).run(
     `UPDATE subdomains SET status='active', dns_record_id=?, error_message=NULL, updated_at=? WHERE id=?`,
     record.id,
+    nowSec(),
+    sub.id,
+  )
+  // 同步登记到解析记录表（根解析：name=''，即 test.neob.asia 本身）
+  await db(env).run(
+    `INSERT INTO dns_records (id, subdomain_id, user_id, name, record_type, content, ttl, cf_record_id, status, created_at, updated_at)
+     SELECT ?, id, user_id, '', record_type, target, ttl, ?, 'active', ?, ? FROM subdomains WHERE id = ?`,
+    newId(),
+    record.id,
+    nowSec(),
     nowSec(),
     sub.id,
   )
@@ -287,7 +298,10 @@ export async function deleteSubdomain(
   const sub = await getSubdomainById(db(env), subId)
   if (!sub) throw new ApiError('NOT_FOUND', '子域名不存在', 404)
 
-  // 仅当存在 CF DNS 记录时才调用删除（平台创建的记录）
+  // 级联删除该子域名名下的全部解析记录（dns_records 表，含子域解析）
+  await deleteAllRecordsForSubdomain(env, sub)
+
+  // 仅当存在 CF DNS 记录时才调用删除（平台创建的根记录，兼容旧数据）
   if (sub.dns_record_id) {
     const cf = makeCf(env)
     try {
