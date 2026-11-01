@@ -80,7 +80,7 @@ export default function AdminSettings() {
             }}
           />
         </div>
-        <hr style={{ borderColor: 'var(--md-outline-variant)' }} />
+        <hr style={{ borderColor: 'var(--ui-outline-variant)' }} />
         <div>
           <Input
             label="每用户子域名数量上限"

@@ -155,7 +155,7 @@ export default function UserApply() {
               {prefix && prefixCheck.ok && (
                 <div
                   className="text-xs mt-1 flex items-center gap-1"
-                  style={{ color: 'var(--md-primary)' }}
+                  style={{ color: 'var(--ui-primary)' }}
                 >
                   可用
                 </div>
@@ -221,7 +221,7 @@ export default function UserApply() {
           </div>
 
           {err.form && (
-            <div className="text-xs" style={{ color: 'var(--md-error)' }}>
+            <div className="text-xs" style={{ color: 'var(--ui-error)' }}>
               {err.form}
             </div>
           )}
@@ -235,8 +235,8 @@ export default function UserApply() {
           <div
             className="mt-4 p-4 rounded-md flex items-start gap-3"
             style={{
-              background: 'var(--md-surface-container-high)',
-              color: 'var(--md-on-surface)',
+              background: 'var(--ui-surface-container-high)',
+              color: 'var(--ui-on-surface)',
             }}
           >
             <div className="pt-0.5">

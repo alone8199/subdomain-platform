@@ -110,7 +110,7 @@ export default function AdminUsers() {
     <div>
       <PageHeader title="用户管理" desc="创建用户、启用/禁用、重置密码、调整角色" />
       <div className="card">
-        <div className="p-3 border-b flex justify-end" style={{ borderColor: 'var(--md-outline-variant)' }}>
+        <div className="p-3 border-b flex justify-end" style={{ borderColor: 'var(--ui-outline-variant)' }}>
           <Button variant="primary" size="sm" onClick={() => setShowAdd(true)}>创建用户</Button>
         </div>
         {loading ? (

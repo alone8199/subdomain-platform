@@ -109,7 +109,7 @@ export default function AdminZones() {
     <div>
       <PageHeader title="根域名管理" desc="接入多个根域名，各自独立配置与状态" />
       <div className="card">
-        <div className="p-3 border-b flex justify-end" style={{ borderColor: 'var(--md-outline-variant)' }}>
+        <div className="p-3 border-b flex justify-end" style={{ borderColor: 'var(--ui-outline-variant)' }}>
           <Button variant="primary" size="sm" onClick={() => setShowAdd(true)}>
             添加根域名
           </Button>

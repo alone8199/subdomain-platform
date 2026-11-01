@@ -116,7 +116,7 @@ export default function AdminSubdomains() {
     <div>
       <PageHeader title="全部子域名" desc="管理所有用户申请的子域名（按根域名 / 状态筛选）" />
       <div className="card">
-        <div className="p-3 border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--md-outline-variant)' }}>
+        <div className="p-3 border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--ui-outline-variant)' }}>
           <Select
             label="根域名"
             className="w-48"

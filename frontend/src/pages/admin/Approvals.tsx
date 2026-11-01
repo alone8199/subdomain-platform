@@ -103,7 +103,7 @@ export default function AdminApprovals() {
     <div>
       <PageHeader title="申请审批" desc="手动审批模式下，pending 申请需在此通过或拒绝" />
       <div className="card">
-        <div className="p-3 border-b flex items-center justify-between gap-2 flex-wrap" style={{ borderColor: 'var(--md-outline-variant)' }}>
+        <div className="p-3 border-b flex items-center justify-between gap-2 flex-wrap" style={{ borderColor: 'var(--ui-outline-variant)' }}>
           <div className="flex items-center gap-2">
             <Select
               label="按根域名筛选"

@@ -56,7 +56,7 @@ export default function AdminAudit() {
     <div>
       <PageHeader title="审计日志" desc="记录登录、申请、审批、DNS 变更、用户与根域名变更（含 root_domain 与 zone_id）" />
       <div className="card">
-        <div className="p-3 border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--md-outline-variant)' }}>
+        <div className="p-3 border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--ui-outline-variant)' }}>
           <Select
             label="动作"
             className="w-44"

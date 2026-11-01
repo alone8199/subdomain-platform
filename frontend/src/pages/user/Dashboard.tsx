@@ -32,11 +32,11 @@ function QuotaRow({
       </div>
       <div
         className="h-2 rounded-full"
-        style={{ background: 'var(--md-surface-container-high)' }}
+        style={{ background: 'var(--ui-surface-container-high)' }}
       >
         <div
           className="h-2 rounded-full"
-          style={{ width: `${pct}%`, background: 'var(--md-primary)' }}
+          style={{ width: `${pct}%`, background: 'var(--ui-primary)' }}
         />
       </div>
     </div>
@@ -75,7 +75,7 @@ export default function UserDashboard() {
                 <div className="text-sm text-on-surface-variant">{c.label}</div>
                 <div
                   className="text-2xl font-semibold mt-1"
-                  style={{ color: 'var(--md-on-surface)' }}
+                  style={{ color: 'var(--ui-on-surface)' }}
                 >
                   {c.value}
                 </div>

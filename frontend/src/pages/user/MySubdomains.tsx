@@ -115,7 +115,7 @@ export default function MySubdomains() {
     <div>
       <PageHeader title="我的子域名" desc="查看、复制、编辑、删除你申请的子域名" />
       <div className="card">
-        <div className="p-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--md-outline-variant)' }}>
+        <div className="p-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--ui-outline-variant)' }}>
           <Select
             label="按根域名筛选"
             className="w-48"

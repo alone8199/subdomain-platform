@@ -129,14 +129,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
 function SnackbarContainer({ items }: { items: ToastItem[] }) {
   const bg: Record<ToastType, string> = {
-    success: 'var(--md-surface-container-high)',
-    error: 'var(--md-error-container)',
-    info: 'var(--md-surface-container-high)',
+    success: 'var(--ui-surface-container-high)',
+    error: 'var(--ui-error-container)',
+    info: 'var(--ui-surface-container-high)',
   }
   const fg: Record<ToastType, string> = {
-    success: 'var(--md-on-surface)',
-    error: 'var(--md-on-error-container)',
-    info: 'var(--md-on-surface)',
+    success: 'var(--ui-on-surface)',
+    error: 'var(--ui-on-error-container)',
+    info: 'var(--ui-on-surface)',
   }
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[60] flex flex-col gap-2 items-center w-full max-w-sm px-3">

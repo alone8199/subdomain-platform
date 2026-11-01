@@ -38,7 +38,7 @@ export default function Setup() {
         <div className="flex items-center justify-center gap-2 mb-6">
           <div
             className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
+            style={{ background: 'var(--ui-primary)', color: 'var(--ui-on-primary)' }}
           >
             <Icon name="public" size={22} />
           </div>
@@ -59,12 +59,12 @@ export default function Setup() {
               required
             />
             {msg && (
-              <div className="text-xs" style={{ color: 'var(--md-primary)' }}>
+              <div className="text-xs" style={{ color: 'var(--ui-primary)' }}>
                 {msg}
               </div>
             )}
             {err && (
-              <div className="text-xs" style={{ color: 'var(--md-error)' }}>
+              <div className="text-xs" style={{ color: 'var(--ui-error)' }}>
                 {err}
               </div>
             )}

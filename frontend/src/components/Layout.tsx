@@ -23,11 +23,11 @@ function Brand() {
   return (
     <div
       className="flex items-center gap-2 px-5 h-14 border-b border-outline-variant"
-      style={{ borderColor: 'var(--md-outline-variant)' }}
+      style={{ borderColor: 'var(--ui-outline-variant)' }}
     >
       <div
         className="w-8 h-8 rounded-full flex items-center justify-center"
-        style={{ background: 'var(--md-primary)', color: 'var(--md-on-primary)' }}
+        style={{ background: 'var(--ui-primary)', color: 'var(--ui-on-primary)' }}
       >
         <Icon name="public" size={18} />
       </div>
@@ -54,10 +54,10 @@ function NavItems({
           style={({ isActive }) =>
             isActive
               ? {
-                  background: 'var(--md-primary-container)',
-                  color: 'var(--md-on-primary-container)',
+                  background: 'var(--ui-primary-container)',
+                  color: 'var(--ui-on-primary-container)',
                 }
-              : { color: 'var(--md-on-surface-variant)' }
+              : { color: 'var(--ui-on-surface-variant)' }
           }
         >
           <Icon name={it.icon} size={20} />
@@ -71,13 +71,14 @@ function NavItems({
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
   return (
-    <md-icon-button
+    <button
       onClick={toggleTheme}
       title={theme === 'dark' ? '切换到浅色' : '切换到深色'}
-      style={{ color: 'var(--md-on-surface-variant)' } as any}
+      className="w-9 h-9 rounded-lg flex items-center justify-center hover-bg-high transition-colors"
+      style={{ color: 'var(--ui-on-surface-variant)' }}
     >
       <Icon name={theme === 'dark' ? 'light_mode' : 'dark_mode'} />
-    </md-icon-button>
+    </button>
   )
 }
 
@@ -96,15 +97,15 @@ function RailContent({
       <div
         className="px-4 py-3 text-xs border-t"
         style={{
-          borderColor: 'var(--md-outline-variant)',
-          color: 'var(--md-on-surface-variant)',
+          borderColor: 'var(--ui-outline-variant)',
+          color: 'var(--ui-on-surface-variant)',
         }}
       >
         <div className="truncate">{user?.email}</div>
         <button
           onClick={logout}
           className="mt-2 flex items-center gap-1 hover-bg-high rounded-full px-2 py-1"
-          style={{ color: 'var(--md-on-surface-variant)' }}
+          style={{ color: 'var(--ui-on-surface-variant)' }}
         >
           <Icon name="logout" size={16} /> 退出登录
         </button>
@@ -136,7 +137,7 @@ function Shell({
       {drawer && (
         <div
           className="md:hidden fixed inset-0 z-40"
-          style={{ background: 'var(--md-scrim)' }}
+          style={{ background: 'var(--ui-scrim)' }}
           onClick={() => setDrawer(false)}
         >
           <aside
@@ -151,16 +152,16 @@ function Shell({
       <div className="md:ml-[248px]">
         <header
           className="sticky top-0 z-30 bg-surface border-b h-14 flex items-center justify-between px-4"
-          style={{ borderColor: 'var(--md-outline-variant)' }}
+          style={{ borderColor: 'var(--ui-outline-variant)' }}
         >
           <div className="flex items-center gap-2">
-            <md-icon-button
-              className="md:hidden"
-              style={{ color: 'var(--md-on-surface-variant)' } as any}
+            <button
+              className="md:hidden w-9 h-9 rounded-lg flex items-center justify-center hover-bg-high transition-colors"
+              style={{ color: 'var(--ui-on-surface-variant)' }}
               onClick={() => setDrawer(true)}
             >
               <Icon name="menu" />
-            </md-icon-button>
+            </button>
             <span className="font-medium text-on-surface">{title}</span>
           </div>
           <div className="flex items-center gap-1">
