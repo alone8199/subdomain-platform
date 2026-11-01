@@ -68,18 +68,21 @@ subdomain-platform/
     └── src/
         ├── main.tsx
         ├── App.tsx                # 路由与权限
-        ├── index.css              # Tailwind + 后台风格基础样式
-        ├── api.ts                 # 统一请求封装（401 跳登录）
-        ├── types.ts
-        ├── context.tsx            # Auth + Toast Provider
-        ├── components/
-        │   ├── ui.tsx             # Button/Input/Badge/Modal/Spinner/EmptyState 等
-        │   └── Layout.tsx         # 侧边导航 + 顶栏（响应式可折叠）
+    ├── index.css              # Tailwind + MD3 设计令牌（明/暗主题，暖色调 CSS 变量）
+    ├── api.ts                 # 统一请求封装（401 跳登录）
+    ├── types.ts
+    ├── context.tsx            # Auth + Theme（明/暗切换，localStorage 持久化）+ Snackbar Provider
+    ├── components/
+    │   ├── ui.tsx             # MD3 组件库（Button/Badge/Dialog/Snackbar/Switch/Checkbox/Spinner/EmptyState 等）
+    │   └── Layout.tsx         # MD3 导航栏 + 顶栏（响应式抽屉）+ 主题切换
         ├── pages/
         │   ├── Login.tsx
         │   ├── Setup.tsx
         │   ├── user/              # 概览 / 申请 / 我的子域名 / 账户设置
-        │   └── admin/             # 仪表盘 / 根域名 / 审批 / 子域名 / 用户 / 设置 / 审计
+        │   └── admin/             # 仪表盘 / 根域名 / 子域名 / 用户 / 设置 / 审计
+└── demo-server/                  # 纯前端 + Node 内存 Mock 的演示服务（无需 Cloudflare 即可预览 UI）
+    ├── package.json            # type: module，start: node server.mjs
+    └── server.mjs              # 内存数据、静态资源托管、SPA fallback，模拟自动通过/配额/限制等行为
 ```
 
 ---
@@ -188,10 +191,12 @@ npm run deploy
 ## 功能概览
 
 - **认证**：邮箱+密码登录；会话持久化在 D1（便于查询与审计，且数据模型要求 `sessions` 表），Cookie 为 `HttpOnly; Secure; SameSite=Lax`，7 天过期；KV 用于登录与申请接口的限流缓存（满足“会话/限流缓存：KV”的强依赖要求，限流即用 KV；若后续需要把会话本身也移入 KV 可平滑扩展）；公开注册默认关闭，管理员可在后台开启或手动建用户；修改类接口校验 Origin/Referer 防 CSRF。
-- **多根域名**：支持接入任意数量根域名，每个独立配置（启用/禁用、自动审批、默认 TTL、允许记录类型、保留词、备注），唯一性约束，删除前校验无活跃子域名。
-- **子域名申请**：选根域名 + 前缀 + 记录类型（CNAME/A/AAAA/TXT）+ 目标 + TTL + 可选 Proxied + 可选到期；前缀规则与保留词校验；D1 与 Cloudflare Zone 双重冲突检测；手动审批或自动审批；创建失败回滚为 `error` 并展示脱敏错误，可重试。
-- **管理员后台**：仪表盘、根域名管理、申请审批（单条/批量/拒绝原因）、全部子域名、用户管理（启用/禁用/重置密码/设管理员）、系统设置（公开注册开关）、审计日志（按根域名/动作筛选）。
-- **用户中心**：概览、申请、我的子域名（复制/删除/重试）、账户设置（改密码）。
+- **多根域名**：支持接入任意数量根域名，每个独立配置（启用/禁用、默认 TTL、允许记录类型、保留词、备注），唯一性约束，删除前校验无活跃子域名。
+- **子域名申请（自动通过）**：选根域名 + 前缀 + 记录类型（CNAME/A/AAAA/TXT）+ 目标 + TTL + 可选 Proxied + 可选到期；**提交即自动通过并立即创建 DNS 记录，无需管理员审批**（申请即开通）。前缀格式（仅字母数字与连字符、长度等）与保留词（`reserved_words`）在**前端实时拦截**，非标准前缀无法提交；D1 与 Cloudflare Zone 双重冲突检测；创建失败回滚为 `error` 并展示脱敏错误，可重试。已激活子域名即可直接用于解析，解析由 Cloudflare 边缘节点承载，**解析请求次数无平台限制**。
+- **配额限制**：管理员后台「系统设置」可配置 `max_subdomains_per_user`（每用户拥有的子域名数量上限，默认 10）与 `max_applications_per_month`（每用户每月申请次数上限，默认 30）；超出时申请接口返回 `LIMIT_REACHED` / `MONTH_LIMIT`（HTTP 429）。用户中心「概览」以进度条展示已用/上限。
+- **管理员后台**：仪表盘、根域名管理、全部子域名、用户管理（启用/禁用/重置密码/设管理员）、系统设置（公开注册开关 + 配额限制）、审计日志（按根域名/动作筛选）。
+- **用户中心**：概览（含配额进度）、申请（实时校验、自动通过）、我的子域名（复制/删除/重试）、账户设置（改密码）。
+- **界面（Material Design 3）**：前端基于 MD3 设计规范重写，提供**明/暗主题一键切换**并持久化到 `localStorage`，默认采用**暖色调**（陶土棕主色）；导航栏、顶栏、对话框、Snackbar、开关、芯片状态徽章等均为 MD3 组件。
 - **到期回收**：每日 Cron 遍历过期子域名，按各自 Zone 删除 DNS 并记录审计。
 
 ---
@@ -215,8 +220,9 @@ npm run deploy
 1. **登录**：访问 `/setup` 用 `SETUP_TOKEN` 初始化管理员 → `/login` 用管理员邮箱密码登录成功。
 2. **添加根域名**：管理员后台「根域名管理」→ 添加 `example.com` → 系统校验 Token 权限并保存 Zone ID，列表显示启用/自动审批/统计。
 3. **用户申请**：用普通用户（或开启公开注册后注册）在「申请子域名」选择根域名、填前缀 `foo`、类型 CNAME、目标 `target.example.net` 提交。
-4. **审批**：若为手动模式，管理员在「申请审批」通过 `foo.example.com`；若为自动审批，提交即 `active`。
+4. **自动通过**：提交申请后无需审批，状态直接为 `active`，并在 Cloudflare 对应 Zone 创建 DNS 记录。非标准前缀（如含下划线、命中保留词 `www` 等）在提交前被前端拦截。
 5. **DNS 创建成功**：到 Cloudflare 控制台对应 Zone 的 DNS 页面，确认出现 `foo.example.com` 的 CNAME 记录（与 `dns_record_id` 对应）。
+5b. **配额限制**：在「系统设置」把 `max_subdomains_per_user` 调小（如 1），用户再次申请时返回 `LIMIT_REACHED`（HTTP 429）；把 `max_applications_per_month` 调小后，跨月额度的申请也会被拦截。用户中心「概览」进度条同步展示用量。
 6. **删除回收**：用户在「我的子域名」删除 → Cloudflare DNS 记录被移除；管理员「全部子域名」也可强制删除。
 7. **Cron 过期清理**：给某子域名设置过去时间作为到期时间（或数据库内将 `expires_at` 改为过去时间戳），等待每日 Cron 或手动触发后，确认 DNS 记录被删除且审计日志有 `cron_expire` 记录。
 

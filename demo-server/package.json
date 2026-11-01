@@ -1,0 +1,10 @@
+{
+  "name": "subdomain-platform-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "二级域名分发平台 — 演示服务器（内存 mock 后端 + 静态前端）",
+  "scripts": {
+    "start": "node server.mjs"
+  }
+}
