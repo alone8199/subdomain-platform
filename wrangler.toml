@@ -1,0 +1,38 @@
+name = "subdomain-platform"
+main = "src/worker.ts"
+compatibility_date = "2025-01-01"
+# account_id 可在此填写，或在 wrangler 登录后由环境变量 / ~/.wrangler 自动解析
+# account_id = "your-cloudflare-account-id"
+
+# 公开变量（非敏感）。敏感信息请使用 wrangler secret put 设置，不要写在这里。
+[vars]
+ADMIN_EMAIL = "admin@example.com"
+
+# ---- D1 数据库 ----
+# 执行 `wrangler d1 create subdomain_platform` 后，把返回的 database_id 填到下面。
+[[d1_databases]]
+binding = "DB"
+database_name = "subdomain_platform"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"
+
+# ---- KV 命名空间 ----
+# 执行 `wrangler kv namespace create RATE_LIMIT` 后，把返回的 id 填到下面。
+[[kv_namespaces]]
+binding = "KV"
+id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+
+# ---- 静态资源（前端构建产物） ----
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# SPA 模式：未知路径回退到 index.html，配合前端路由
+html_handling = "auto-trailing-slash"
+not_found_handling = "single-page-application"
+
+# ---- 可观测性（可选，便于排错） ----
+[observability]
+enabled = true
+
+# ---- Cron 触发器：每天 UTC 0 点清理过期子域名 ----
+[triggers]
+crons = ["0 0 * * *"]

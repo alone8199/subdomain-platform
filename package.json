@@ -1,0 +1,39 @@
+{
+  "name": "subdomain-platform",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Cloudflare Workers 二级域名分发平台（Hono + D1 + KV + React）",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build": "vite build",
+    "deploy": "vite build && wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:create": "wrangler d1 create subdomain_platform",
+    "db:migrate": "wrangler d1 migrations apply subdomain_platform",
+    "db:migrate:local": "wrangler d1 migrations apply subdomain_platform --local",
+    "kv:create": "wrangler kv namespace create RATE_LIMIT",
+    "secret:set": "wrangler secret put CF_API_TOKEN && wrangler secret put CF_ACCOUNT_ID && wrangler secret put SETUP_TOKEN && wrangler secret put ADMIN_INITIAL_PASSWORD",
+    "typegen": "wrangler types"
+  },
+  "dependencies": {
+    "hono": "^4.6.14",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@types/node": "^20.17.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.15",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "wrangler": "^3.90.0"
+  }
+}
