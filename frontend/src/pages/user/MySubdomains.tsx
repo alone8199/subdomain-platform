@@ -9,6 +9,9 @@ import {
   ConfirmButton,
   Modal,
   FieldError,
+  Button,
+  Input,
+  Select,
 } from '../../components/ui'
 import type { Subdomain, ApplyZone } from '../../types'
 
@@ -112,20 +115,17 @@ export default function MySubdomains() {
     <div>
       <PageHeader title="我的子域名" desc="查看、复制、编辑、删除你申请的子域名" />
       <div className="card">
-        <div className="p-3 border-b border-gray-100 flex items-center gap-2">
-          <label className="text-sm text-gray-600">按根域名筛选</label>
-          <select
-            className="input w-48"
+        <div className="p-3 border-b flex items-center gap-2" style={{ borderColor: 'var(--md-outline-variant)' }}>
+          <Select
+            label="按根域名筛选"
+            className="w-48"
             value={zoneFilter}
-            onChange={(e) => setZoneFilter(e.target.value)}
-          >
-            <option value="">全部</option>
-            {zones.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.root_domain}
-              </option>
-            ))}
-          </select>
+            onChange={setZoneFilter}
+            options={[
+              { value: '', label: '全部' },
+              ...zones.map((z) => ({ value: z.id, label: z.root_domain })),
+            ]}
+          />
         </div>
         {loading ? (
           <Spinner />
@@ -166,18 +166,18 @@ export default function MySubdomains() {
                     <td className="td">{fmt(s.expires_at)}</td>
                     <td className="td whitespace-nowrap">
                       <div className="flex gap-1">
-                        <button className="btn-secondary btn-sm" onClick={() => copy(s.full_domain)}>
+                        <Button variant="outlined" size="sm" onClick={() => copy(s.full_domain)}>
                           复制
-                        </button>
+                        </Button>
                         {s.status === 'active' && (
-                          <button className="btn-secondary btn-sm" onClick={() => openEdit(s)}>
+                          <Button variant="outlined" size="sm" onClick={() => openEdit(s)}>
                             编辑
-                          </button>
+                          </Button>
                         )}
                         {s.status === 'error' && (
-                          <button className="btn-secondary btn-sm" onClick={() => retry(s.id)}>
+                          <Button variant="outlined" size="sm" onClick={() => retry(s.id)}>
                             重试
-                          </button>
+                          </Button>
                         )}
                         <ConfirmButton
                           label="删除"
@@ -200,34 +200,28 @@ export default function MySubdomains() {
         onClose={() => setEditId('')}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setEditId('')}>
+            <Button variant="outlined" onClick={() => setEditId('')}>
               取消
-            </button>
-            <button className="btn-primary" onClick={saveEdit} disabled={saving}>
+            </Button>
+            <Button variant="primary" onClick={saveEdit} disabled={saving}>
               {saving ? '保存中…' : '保存'}
-            </button>
+            </Button>
           </>
         }
       >
         <div className="space-y-3">
-          <div>
-            <label className="label">目标内容</label>
-            <input
-              className="input"
-              value={editTarget}
-              onChange={(e) => setEditTarget(e.target.value)}
-              placeholder="例如 1.2.3.4 或 target.example.com"
-            />
-          </div>
-          <div>
-            <label className="label">TTL（秒）</label>
-            <input
-              className="input"
-              value={editTtl}
-              onChange={(e) => setEditTtl(e.target.value)}
-              inputMode="numeric"
-            />
-          </div>
+          <Input
+            label="目标内容"
+            value={editTarget}
+            onChange={setEditTarget}
+            placeholder="例如 1.2.3.4 或 target.example.com"
+          />
+          <Input
+            label="TTL（秒）"
+            value={editTtl}
+            onChange={setEditTtl}
+            inputMode="numeric"
+          />
           <FieldError msg={editErr} />
         </div>
       </Modal>

@@ -5,9 +5,13 @@ import {
   PageHeader,
   Spinner,
   EmptyState,
-  Badge,
   Modal,
   FieldError,
+  Button,
+  Input,
+  Select,
+  TextArea,
+  Checkbox,
 } from '../../components/ui'
 import type { Subdomain, Zone } from '../../types'
 
@@ -99,19 +103,22 @@ export default function AdminApprovals() {
     <div>
       <PageHeader title="申请审批" desc="手动审批模式下，pending 申请需在此通过或拒绝" />
       <div className="card">
-        <div className="p-3 border-b border-gray-100 flex items-center justify-between gap-2 flex-wrap">
+        <div className="p-3 border-b flex items-center justify-between gap-2 flex-wrap" style={{ borderColor: 'var(--md-outline-variant)' }}>
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">按根域名筛选</label>
-            <select className="input w-48" value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)}>
-              <option value="">全部</option>
-              {zones.map((z) => (
-                <option key={z.id} value={z.id}>{z.root_domain}</option>
-              ))}
-            </select>
+            <Select
+              label="按根域名筛选"
+              className="w-48"
+              value={zoneFilter}
+              onChange={setZoneFilter}
+              options={[
+                { value: '', label: '全部' },
+                ...zones.map((z) => ({ value: z.id, label: z.root_domain })),
+              ]}
+            />
           </div>
-          <button className="btn-primary btn-sm" disabled={selected.size === 0} onClick={bulkApprove}>
+          <Button variant="primary" size="sm" disabled={selected.size === 0} onClick={bulkApprove}>
             批量通过（{selected.size}）
-          </button>
+          </Button>
         </div>
         {loading ? (
           <Spinner />
@@ -136,7 +143,7 @@ export default function AdminApprovals() {
                 {list.map((s) => (
                   <tr key={s.id}>
                     <td className="td">
-                      <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
+                      <Checkbox checked={selected.has(s.id)} onChange={() => toggle(s.id)} />
                     </td>
                     <td className="td font-medium">{s.full_domain}</td>
                     <td className="td">{s.root_domain}</td>
@@ -146,8 +153,8 @@ export default function AdminApprovals() {
                     <td className="td text-xs text-gray-500">{fmt(s.created_at)}</td>
                     <td className="td whitespace-nowrap">
                       <div className="flex gap-1">
-                        <button className="btn-primary btn-sm" onClick={() => approve(s.id)}>通过</button>
-                        <button className="btn-danger btn-sm" onClick={() => setRejectId(s.id)}>拒绝</button>
+                        <Button variant="primary" size="sm" onClick={() => approve(s.id)}>通过</Button>
+                        <Button variant="danger" size="sm" onClick={() => setRejectId(s.id)}>拒绝</Button>
                       </div>
                     </td>
                   </tr>
@@ -161,15 +168,19 @@ export default function AdminApprovals() {
       <Modal open={!!rejectId} title="拒绝申请" onClose={() => setRejectId(null)}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setRejectId(null)}>取消</button>
-            <button className="btn-danger" onClick={submitReject}>确认拒绝</button>
+            <Button variant="outlined" onClick={() => setRejectId(null)}>取消</Button>
+            <Button variant="danger" onClick={submitReject}>确认拒绝</Button>
           </>
         }
       >
         <div>
-          <label className="label">拒绝原因</label>
-          <textarea className="input" rows={3} value={reason}
-            onChange={(e) => setReason(e.target.value)} placeholder="请说明拒绝原因" />
+          <TextArea
+            label="拒绝原因"
+            rows={3}
+            value={reason}
+            onChange={setReason}
+            placeholder="请说明拒绝原因"
+          />
           <FieldError msg={rejectErr} />
         </div>
       </Modal>

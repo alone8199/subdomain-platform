@@ -9,6 +9,9 @@ import {
   ConfirmButton,
   Modal,
   FieldError,
+  Button,
+  Input,
+  Select,
 } from '../../components/ui'
 import type { Subdomain, Zone } from '../../types'
 
@@ -113,18 +116,24 @@ export default function AdminSubdomains() {
     <div>
       <PageHeader title="全部子域名" desc="管理所有用户申请的子域名（按根域名 / 状态筛选）" />
       <div className="card">
-        <div className="p-3 border-b border-gray-100 flex items-center gap-2 flex-wrap">
-          <select className="input w-48" value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)}>
-            <option value="">全部根域名</option>
-            {zones.map((z) => (
-              <option key={z.id} value={z.id}>{z.root_domain}</option>
-            ))}
-          </select>
-          <select className="input w-40" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>{s === '' ? '全部状态' : s}</option>
-            ))}
-          </select>
+        <div className="p-3 border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--md-outline-variant)' }}>
+          <Select
+            label="根域名"
+            className="w-48"
+            value={zoneFilter}
+            onChange={setZoneFilter}
+            options={[
+              { value: '', label: '全部根域名' },
+              ...zones.map((z) => ({ value: z.id, label: z.root_domain })),
+            ]}
+          />
+          <Select
+            label="状态"
+            className="w-40"
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={STATUS_OPTIONS.map((s) => ({ value: s, label: s === '' ? '全部状态' : s }))}
+          />
         </div>
         {loading ? (
           <Spinner />
@@ -163,10 +172,10 @@ export default function AdminSubdomains() {
                     <td className="td whitespace-nowrap">
                       <div className="flex gap-1">
                         {s.status === 'active' && (
-                          <button className="btn-secondary btn-sm" onClick={() => openEdit(s)}>编辑</button>
+                          <Button variant="outlined" size="sm" onClick={() => openEdit(s)}>编辑</Button>
                         )}
                         {s.status === 'error' && (
-                          <button className="btn-secondary btn-sm" onClick={() => retry(s.id)}>重试</button>
+                          <Button variant="outlined" size="sm" onClick={() => retry(s.id)}>重试</Button>
                         )}
                         <ConfirmButton
                           label="强制删除"
@@ -189,32 +198,26 @@ export default function AdminSubdomains() {
         onClose={() => setEditId('')}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setEditId('')}>取消</button>
-            <button className="btn-primary" onClick={saveEdit} disabled={saving}>
+            <Button variant="outlined" onClick={() => setEditId('')}>取消</Button>
+            <Button variant="primary" onClick={saveEdit} disabled={saving}>
               {saving ? '保存中…' : '保存'}
-            </button>
+            </Button>
           </>
         }
       >
         <div className="space-y-3">
-          <div>
-            <label className="label">目标内容</label>
-            <input
-              className="input"
-              value={editTarget}
-              onChange={(e) => setEditTarget(e.target.value)}
-              placeholder="例如 1.2.3.4 或 target.example.com"
-            />
-          </div>
-          <div>
-            <label className="label">TTL（秒）</label>
-            <input
-              className="input"
-              value={editTtl}
-              onChange={(e) => setEditTtl(e.target.value)}
-              inputMode="numeric"
-            />
-          </div>
+          <Input
+            label="目标内容"
+            value={editTarget}
+            onChange={setEditTarget}
+            placeholder="例如 1.2.3.4 或 target.example.com"
+          />
+          <Input
+            label="TTL（秒）"
+            value={editTtl}
+            onChange={setEditTtl}
+            inputMode="numeric"
+          />
           <FieldError msg={editErr} />
         </div>
       </Modal>

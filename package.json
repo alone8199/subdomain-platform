@@ -17,6 +17,7 @@
     "typegen": "wrangler types"
   },
   "dependencies": {
+    "@material/web": "^2.5.0",
     "hono": "^4.6.14",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

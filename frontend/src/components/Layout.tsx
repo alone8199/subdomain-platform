@@ -71,14 +71,13 @@ function NavItems({
 function ThemeToggle() {
   const { theme, toggleTheme } = useTheme()
   return (
-    <button
+    <md-icon-button
       onClick={toggleTheme}
       title={theme === 'dark' ? '切换到浅色' : '切换到深色'}
-      className="w-10 h-10 rounded-full flex items-center justify-center hover-bg-high"
-      style={{ color: 'var(--md-on-surface-variant)' }}
+      style={{ color: 'var(--md-on-surface-variant)' } as any}
     >
       <Icon name={theme === 'dark' ? 'light_mode' : 'dark_mode'} />
-    </button>
+    </md-icon-button>
   )
 }
 
@@ -155,13 +154,13 @@ function Shell({
           style={{ borderColor: 'var(--md-outline-variant)' }}
         >
           <div className="flex items-center gap-2">
-            <button
-              className="md:hidden w-10 h-10 -ml-2 rounded-full flex items-center justify-center hover-bg-high"
-              style={{ color: 'var(--md-on-surface-variant)' }}
+            <md-icon-button
+              className="md:hidden"
+              style={{ color: 'var(--md-on-surface-variant)' } as any}
               onClick={() => setDrawer(true)}
             >
               <Icon name="menu" />
-            </button>
+            </md-icon-button>
             <span className="font-medium text-on-surface">{title}</span>
           </div>
           <div className="flex items-center gap-1">

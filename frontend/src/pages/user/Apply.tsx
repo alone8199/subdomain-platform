@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiClientError } from '../../api'
 import { useToast } from '../../context'
-import { PageHeader, FieldError, Badge } from '../../components/ui'
+import { PageHeader, FieldError, Badge, Button, Input, Select } from '../../components/ui'
 import type { ApplyZone } from '../../types'
 
 function validatePrefix(
@@ -132,28 +132,21 @@ export default function UserApply() {
       <div className="card p-5 max-w-2xl">
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label className="label">根域名</label>
-            <select
-              className="input"
+            <Select
+              label="根域名"
               value={zoneId}
-              onChange={(e) => onZoneChange(e.target.value)}
-            >
-              {zones.map((z) => (
-                <option key={z.id} value={z.id}>
-                  {z.root_domain}
-                </option>
-              ))}
-            </select>
+              onChange={onZoneChange}
+              options={zones.map((z) => ({ value: z.id, label: z.root_domain }))}
+            />
             <FieldError msg={err.zone_id} />
           </div>
 
           <div className="flex items-end gap-2">
             <div className="flex-1">
-              <label className="label">子域名前缀</label>
-              <input
-                className="input"
+              <Input
+                label="子域名前缀"
                 value={prefix}
-                onChange={(e) => setPrefix(e.target.value.toLowerCase())}
+                onChange={(v) => setPrefix(v.toLowerCase())}
                 placeholder="例如 myapp"
               />
               {prefix && !prefixCheck.ok && (
@@ -170,53 +163,38 @@ export default function UserApply() {
             </div>
             <div className="px-2 pb-2 text-on-surface-variant">.</div>
             <div className="w-48">
-              <label className="label">根域名</label>
-              <div
-                className="input flex items-center"
-                style={{
-                  background: 'var(--md-surface-container)',
-                  color: 'var(--md-on-surface-variant)',
-                }}
-              >
-                {selectedZone?.root_domain ?? ''}
-              </div>
+              <Input
+                label="根域名"
+                value={selectedZone?.root_domain ?? ''}
+                disabled
+              />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">记录类型</label>
-              <select
-                className="input"
+              <Select
+                label="记录类型"
                 value={recordType}
-                onChange={(e) => setRecordType(e.target.value)}
-              >
-                {allowedTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+                onChange={setRecordType}
+                options={allowedTypes.map((t) => ({ value: t, label: t }))}
+              />
             </div>
             <div>
-              <label className="label">TTL（秒）</label>
-              <input
-                className="input"
+              <Input
+                label="TTL（秒）"
                 type="number"
-                min={60}
-                max={86400}
                 value={ttl}
-                onChange={(e) => setTtl(Number(e.target.value))}
+                onChange={(v) => setTtl(Number(v))}
               />
             </div>
           </div>
 
           <div>
-            <label className="label">目标内容</label>
-            <input
-              className="input"
+            <Input
+              label="目标内容"
               value={target}
-              onChange={(e) => setTarget(e.target.value)}
+              onChange={setTarget}
               placeholder={
                 recordType === 'CNAME'
                   ? 'example.com'
@@ -231,12 +209,11 @@ export default function UserApply() {
           </div>
 
           <div>
-            <label className="label">到期时间（可选）</label>
-            <input
-              className="input"
+            <Input
+              label="到期时间（可选）"
               type="datetime-local"
               value={expiresAt}
-              onChange={(e) => setExpiresAt(e.target.value)}
+              onChange={setExpiresAt}
             />
             <div className="text-xs text-on-surface-variant mt-1">
               留空表示长期有效；到期后将由每日 Cron 自动删除 DNS 记录。
@@ -249,9 +226,9 @@ export default function UserApply() {
             </div>
           )}
 
-          <button className="btn-primary" disabled={loading}>
+          <Button variant="primary" type="submit" disabled={loading}>
             {loading ? '提交中…' : '提交申请'}
-          </button>
+          </Button>
         </form>
 
         {result && (

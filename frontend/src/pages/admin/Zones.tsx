@@ -9,6 +9,9 @@ import {
   Modal,
   ConfirmButton,
   FieldError,
+  Button,
+  Input,
+  Checkbox,
 } from '../../components/ui'
 import type { Zone } from '../../types'
 
@@ -68,7 +71,6 @@ export default function AdminZones() {
     try {
       await api.put(`/api/admin/zones/${edit.id}`, {
         enabled: !!edit.enabled,
-        auto_approve: !!edit.auto_approve,
         default_ttl: edit.default_ttl,
         allowed_types: edit.allowed_types,
         reserved_words: edit.reserved_words,
@@ -107,10 +109,10 @@ export default function AdminZones() {
     <div>
       <PageHeader title="根域名管理" desc="接入多个根域名，各自独立配置与状态" />
       <div className="card">
-        <div className="p-3 border-b border-gray-100 flex justify-end">
-          <button className="btn-primary btn-sm" onClick={() => setShowAdd(true)}>
+        <div className="p-3 border-b flex justify-end" style={{ borderColor: 'var(--md-outline-variant)' }}>
+          <Button variant="primary" size="sm" onClick={() => setShowAdd(true)}>
             添加根域名
-          </button>
+          </Button>
         </div>
         {loading ? (
           <Spinner />
@@ -152,12 +154,12 @@ export default function AdminZones() {
                     </td>
                     <td className="td whitespace-nowrap">
                       <div className="flex gap-1">
-                        <button className="btn-secondary btn-sm" onClick={() => setEdit(z)}>
+                        <Button variant="outlined" size="sm" onClick={() => setEdit(z)}>
                           编辑
-                        </button>
-                        <button className="btn-secondary btn-sm" onClick={() => verify(z.id)}>
+                        </Button>
+                        <Button variant="outlined" size="sm" onClick={() => verify(z.id)}>
                           校验
-                        </button>
+                        </Button>
                         <ConfirmButton
                           label="删除"
                           confirmText={`确认删除根域名 ${z.root_domain}？若其下仍有活跃/待处理子域名将被阻止。`}
@@ -177,17 +179,16 @@ export default function AdminZones() {
       <Modal open={showAdd} title="添加根域名" onClose={() => setShowAdd(false)}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setShowAdd(false)}>取消</button>
-            <button className="btn-primary" onClick={addZone}>添加</button>
+            <Button variant="outlined" onClick={() => setShowAdd(false)}>取消</Button>
+            <Button variant="primary" onClick={addZone}>添加</Button>
           </>
         }
       >
         <div>
-          <label className="label">根域名</label>
-          <input
-            className="input"
+          <Input
+            label="根域名"
             value={rootDomain}
-            onChange={(e) => setRootDomain(e.target.value)}
+            onChange={setRootDomain}
             placeholder="example.com"
           />
           <FieldError msg={addErr} />
@@ -201,43 +202,40 @@ export default function AdminZones() {
       <Modal open={!!edit} title="编辑根域名" onClose={() => setEdit(null)}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setEdit(null)}>取消</button>
-            <button className="btn-primary" onClick={saveEdit}>保存</button>
+            <Button variant="outlined" onClick={() => setEdit(null)}>取消</Button>
+            <Button variant="primary" onClick={saveEdit}>保存</Button>
           </>
         }
       >
         {edit && (
           <form onSubmit={saveEdit} className="space-y-3">
             <div className="text-sm text-gray-500">根域名：{edit.root_domain}</div>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={!!edit.enabled} onChange={(e) => setEdit({ ...edit, enabled: e.target.checked ? 1 : 0 })} />
-              启用（禁用后不可再申请，已有子域名不受影响）
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={!!edit.auto_approve} onChange={(e) => setEdit({ ...edit, auto_approve: e.target.checked ? 1 : 0 })} />
-              自动审批
-            </label>
-            <div>
-              <label className="label">默认 TTL（秒）</label>
-              <input className="input" type="number" min={60} max={86400}
-                value={edit.default_ttl}
-                onChange={(e) => setEdit({ ...edit, default_ttl: Number(e.target.value) })} />
-            </div>
-            <div>
-              <label className="label">允许记录类型（逗号分隔）</label>
-              <input className="input" value={edit.allowed_types}
-                onChange={(e) => setEdit({ ...edit, allowed_types: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">保留词（逗号分隔）</label>
-              <input className="input" value={edit.reserved_words}
-                onChange={(e) => setEdit({ ...edit, reserved_words: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">备注</label>
-              <input className="input" value={edit.note}
-                onChange={(e) => setEdit({ ...edit, note: e.target.value })} />
-            </div>
+            <Checkbox
+              checked={!!edit.enabled}
+              onChange={(v) => setEdit({ ...edit, enabled: v ? 1 : 0 })}
+              label="启用（禁用后不可再申请，已有子域名不受影响）"
+            />
+            <Input
+              label="默认 TTL（秒）"
+              type="number"
+              value={edit.default_ttl}
+              onChange={(v) => setEdit({ ...edit, default_ttl: Number(v) })}
+            />
+            <Input
+              label="允许记录类型（逗号分隔）"
+              value={edit.allowed_types}
+              onChange={(v) => setEdit({ ...edit, allowed_types: v })}
+            />
+            <Input
+              label="保留词（逗号分隔）"
+              value={edit.reserved_words}
+              onChange={(v) => setEdit({ ...edit, reserved_words: v })}
+            />
+            <Input
+              label="备注"
+              value={edit.note}
+              onChange={(v) => setEdit({ ...edit, note: v })}
+            />
           </form>
         )}
       </Modal>

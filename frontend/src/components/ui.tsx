@@ -1,32 +1,38 @@
-import { ReactNode, useState } from 'react'
+import { ReactNode, useEffect, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 
-// ===================== 线性图标（MD3 风格） =====================
-const ICONS: Record<string, string> = {
-  menu: 'M4 7h16 M4 12h16 M4 17h16',
-  home: 'M4 11l8-7 8 7 M6 10v9h12v-9',
-  dns: 'M12 3 3 8l9 5 9-5-9-5z M3 13l9 5 9-5',
-  approval: 'M12 3a9 9 0 100 18 9 9 0 000-18z M8.5 12.5l2.5 2.5 4.5-4.5',
-  people:
-    'M9 11a3 3 0 100-6 3 3 0 000 6z M3 20a6 6 0 0112 0 M16 11a3 3 0 10-2.2-5 M16 13c3 0 6 1.5 6 4v3',
-  settings:
-    'M12 8a4 4 0 100 8 4 4 0 000-8z M19.4 13a7.4 7.4 0 000-2l2-1.5-2-3.5-2.4 1a7 7 0 00-1.7-1l-.4-2.5h-4l-.4 2.5a7 7 0 00-1.7 1l-2.4-1-2 3.5 2 1.5a7.4 7.4 0 000 2l-2 1.5 2 3.5 2.4-1a7 7 0 001.7 1l.4 2.5h4l.4-2.5a7 7 0 001.7-1l2.4 1 2-3.5z',
-  history: 'M12 3a9 9 0 109 9 9 9 0 00-9-9z M12 7v5l3 2',
-  light_mode:
-    'M12 17a5 5 0 100-10 5 5 0 000 10z M12 1v3 M12 20v3 M4.2 4.2l2.1 2.1 M17.7 17.7l2.1 2.1 M1 12h3 M20 12h3 M4.2 19.8l2.1-2.1 M17.7 6.3l2.1-2.1',
-  dark_mode: 'M21 12.8A9 9 0 1111.2 3 7 7 0 0021 12.8z',
-  logout: 'M16 17l5-5-5-5 M21 12H9 M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4',
-  copy: 'M16 4h2a2 2 0 012 2v12a2 2 0 01-2 2H8a2 2 0 01-2-2v-2 M4 16V6a2 2 0 012-2h10',
-  delete: 'M6 7h12 M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2 M5 7l1 13a1 1 0 001 1h10a1 1 0 001-1l1-13',
-  edit: 'M4 20h4l10-10-4-4L4 16v4z M13.5 6.5l4 4',
-  check: 'M5 13l4 4L19 7',
-  close: 'M6 6l12 12 M18 6L6 18',
-  add: 'M12 5v14 M5 12h14',
-  back: 'M19 12H5 M11 6l-6 6 6 6',
-  public:
-    'M12 3a9 9 0 100 18 9 9 0 000-18z M3 12h18 M12 3c2.5 2.5 2.5 15 0 18 M12 3c-2.5 2.5-2.5 15 0 18',
-  warning:
-    'M12 9v4 M12 17h.01 M10.3 3.9 2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z',
-  mail: 'M3 7l9 6 9-6 M3 7h18v10H3z',
+/* =====================================================================
+   官方 Material Design 3 组件 —— @material/web（Google 官方 MD3 Web 实现）
+   这里只做「React 受控封装」，所有视觉与交互均由官方组件提供，
+   不再手写任何 MD3 样式组件。主题通过 --md-sys-color-* 令牌注入。
+   ===================================================================== */
+import '@material/web/button/filled-button.js'
+import '@material/web/button/outlined-button.js'
+import '@material/web/button/filled-tonal-button.js'
+import '@material/web/button/text-button.js'
+import '@material/web/textfield/outlined-text-field.js'
+import '@material/web/select/outlined-select.js'
+import '@material/web/select/select-option.js'
+import '@material/web/switch/switch.js'
+import '@material/web/checkbox/checkbox.js'
+import '@material/web/dialog/dialog.js'
+import '@material/web/icon/icon.js'
+import '@material/web/iconbutton/icon-button.js'
+import '@material/web/progress/circular-progress.js'
+import '@material/web/chips/assist-chip.js'
+import type { MdOutlinedTextField } from '@material/web/textfield/outlined-text-field.js'
+import type { MdOutlinedSelect } from '@material/web/select/outlined-select.js'
+import type { MdSwitch } from '@material/web/switch/switch.js'
+import type { MdCheckbox } from '@material/web/checkbox/checkbox.js'
+import type { MdDialog } from '@material/web/dialog/dialog.js'
+
+// ===================== 图标（官方 md-icon + Material Symbols 字体） =====================
+// 旧命名 -> Material Symbols 官方连字名
+const LIGATURE: Record<string, string> = {
+  approval: 'check_circle',
+  people: 'group',
+  copy: 'content_copy',
+  back: 'arrow_back',
 }
 
 export function Icon({
@@ -39,97 +45,296 @@ export function Icon({
   className?: string
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+    <md-icon
       className={className}
+      style={{ fontSize: size, width: `${size}px`, height: `${size}px` } as CSSProperties}
       aria-hidden="true"
     >
-      <path d={ICONS[name] ?? ''} />
-    </svg>
+      {LIGATURE[name] ?? name}
+    </md-icon>
   )
 }
 
-// ===================== 状态标签（MD3 chip） =====================
-const CHIP: Record<string, string> = {
-  active: 'chip chip-active',
-  pending: 'chip chip-pending',
-  rejected: 'chip chip-rejected',
-  error: 'chip chip-error',
-  deleting: 'chip chip-deleting',
-  expired: 'chip chip-expired',
-  success: 'chip chip-active',
-  failure: 'chip chip-failure',
-  disabled: 'chip chip-disabled',
+// ===================== 状态标签（官方 md-assist-chip） =====================
+const CHIP_COLOR: Record<string, [string, string]> = {
+  active: ['var(--md-sys-color-primary-container)', 'var(--md-sys-color-on-primary-container)'],
+  success: ['var(--md-sys-color-primary-container)', 'var(--md-sys-color-on-primary-container)'],
+  pending: ['#fde9c8', '#6b4a00'],
+  rejected: ['var(--md-sys-color-error-container)', 'var(--md-sys-color-on-error-container)'],
+  error: ['var(--md-sys-color-error-container)', 'var(--md-sys-color-on-error-container)'],
+  failure: ['var(--md-sys-color-error-container)', 'var(--md-sys-color-on-error-container)'],
 }
 
 export function Badge({ value }: { value: string }) {
+  const [bg, fg] =
+    CHIP_COLOR[value] ?? [
+      'var(--md-sys-color-surface-container-high)',
+      'var(--md-sys-color-on-surface-variant)',
+    ]
   return (
-    <span className={CHIP[value] ?? 'chip chip-disabled'}>{value}</span>
+    <md-assist-chip
+      label={value}
+      style={
+        {
+          '--md-sys-color-secondary-container': bg,
+          '--md-sys-color-on-secondary-container': fg,
+        } as CSSProperties
+      }
+    ></md-assist-chip>
   )
 }
 
-// ===================== 圆形进度（加载） =====================
+// ===================== 圆形进度（官方 md-circular-progress） =====================
 export function Spinner({ label }: { label?: string }) {
   return (
     <div className="flex items-center justify-center py-10 gap-3 text-on-surface-variant text-sm">
-      <svg
-        className="animate-spin"
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        fill="none"
-        aria-hidden="true"
-      >
-        <circle cx="12" cy="12" r="9" stroke="var(--md-outline-variant)" strokeWidth="3" />
-        <path
-          d="M21 12a9 9 0 00-9-9"
-          stroke="var(--md-primary)"
-          strokeWidth="3"
-          strokeLinecap="round"
-        />
-      </svg>
+      <md-circular-progress
+        indeterminate
+        style={{ width: '24px', height: '24px' } as CSSProperties}
+      ></md-circular-progress>
       {label ?? '加载中…'}
     </div>
   )
 }
 
-// ===================== 空状态 =====================
-export function EmptyState({
-  title,
-  hint,
-  action,
-  icon = 'public',
+// ===================== 按钮（官方 md-filled/outlined/tonal/text-button） =====================
+export function Button({
+  variant = 'primary',
+  size,
+  disabled,
+  onClick,
+  type = 'button',
+  fullWidth,
+  className = '',
+  style,
+  children,
 }: {
-  title: string
-  hint?: string
-  action?: ReactNode
-  icon?: string
+  variant?: 'primary' | 'outlined' | 'tonal' | 'text' | 'danger'
+  size?: 'sm' | 'md'
+  disabled?: boolean
+  onClick?: (e: any) => void
+  type?: 'button' | 'submit'
+  fullWidth?: boolean
+  className?: string
+  style?: CSSProperties
+  children?: ReactNode
 }) {
+  const tag =
+    variant === 'outlined'
+      ? 'md-outlined-button'
+      : variant === 'tonal'
+        ? 'md-filled-tonal-button'
+        : variant === 'text'
+          ? 'md-text-button'
+          : 'md-filled-button' // primary / danger
+  const cls = [
+    variant === 'danger' ? 'md-btn-danger' : '',
+    size === 'sm' ? 'md-btn-sm' : '',
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const Tag = tag as any
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <div
-        className="w-14 h-14 rounded-full flex items-center justify-center mb-3"
-        style={{ background: 'var(--md-surface-container-high)', color: 'var(--md-on-surface-variant)' }}
-      >
-        <Icon name={icon} size={26} />
-      </div>
-      <div className="text-on-surface font-medium">{title}</div>
-      {hint && (
-        <div className="text-on-surface-variant text-sm mt-1 max-w-sm">{hint}</div>
-      )}
-      {action && <div className="mt-4">{action}</div>}
-    </div>
+    <Tag
+      type={type}
+      disabled={disabled}
+      onClick={onClick}
+      className={cls}
+      style={{ width: fullWidth ? '100%' : undefined, ...style } as CSSProperties}
+    >
+      {children}
+    </Tag>
   )
 }
 
-// ===================== 对话框（MD3） =====================
+// ===================== 输入框（官方 md-outlined-text-field） =====================
+export function Input({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  placeholder,
+  disabled,
+  required,
+  error,
+  supportingText,
+  inputMode,
+  autoComplete,
+  className = '',
+  style,
+}: {
+  label?: string
+  value: string | number
+  onChange?: (v: string) => void
+  type?: string
+  placeholder?: string
+  disabled?: boolean
+  required?: boolean
+  error?: string | boolean
+  supportingText?: string
+  inputMode?: 'numeric' | 'text' | 'decimal'
+  autoComplete?: string
+  className?: string
+  style?: CSSProperties
+}) {
+  const ref = useRef<MdOutlinedTextField>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const v = String(value ?? '')
+    if (el.value !== v) el.value = v
+  }, [value])
+  const hasErr = typeof error === 'string' ? !!error : !!error
+  return (
+    <md-outlined-text-field
+      ref={ref}
+      label={label}
+      type={type}
+      placeholder={placeholder}
+      disabled={disabled}
+      required={required}
+      error={hasErr}
+      supporting-text={supportingText || (typeof error === 'string' ? error : '') || ''}
+      inputmode={inputMode}
+      autocomplete={autoComplete}
+      className={className}
+      style={style as CSSProperties}
+      onInput={(e: any) => onChange?.((e.target as MdOutlinedTextField).value)}
+    ></md-outlined-text-field>
+  )
+}
+
+// ===================== 下拉选择（官方 md-outlined-select） =====================
+export function Select({
+  label,
+  value,
+  onChange,
+  options,
+  disabled,
+  className = '',
+  style,
+}: {
+  label?: string
+  value: string
+  onChange?: (v: string) => void
+  options: { value: string; label: string }[]
+  disabled?: boolean
+  className?: string
+  style?: CSSProperties
+}) {
+  const ref = useRef<MdOutlinedSelect>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const v = String(value ?? '')
+    if (el.value !== v) el.value = v
+  }, [value])
+  return (
+    <md-outlined-select
+      ref={ref}
+      label={label}
+      disabled={disabled}
+      className={className}
+      style={style as CSSProperties}
+      onInput={(e: any) => onChange?.((e.target as MdOutlinedSelect).value)}
+    >
+      {options.map((o) => (
+        <md-select-option key={o.value} value={o.value}>
+          <div slot="headline">{o.label}</div>
+        </md-select-option>
+      ))}
+    </md-outlined-select>
+  )
+}
+
+// ===================== 多行文本（MD3 无官方 textarea，令牌样式原生控件） =====================
+export function TextArea({
+  label,
+  value,
+  onChange,
+  rows = 3,
+  placeholder,
+  disabled,
+  className = '',
+}: {
+  label?: string
+  value: string
+  onChange?: (v: string) => void
+  rows?: number
+  placeholder?: string
+  disabled?: boolean
+  className?: string
+}) {
+  return (
+    <textarea
+      className={`md-textarea ${className}`}
+      rows={rows}
+      value={value}
+      onChange={(e) => onChange?.(e.target.value)}
+      placeholder={placeholder}
+      disabled={disabled}
+      aria-label={label}
+    />
+  )
+}
+
+// ===================== 开关（官方 md-switch） =====================
+export function Switch({
+  checked,
+  onChange,
+  disabled,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  disabled?: boolean
+}) {
+  const ref = useRef<MdSwitch>(null)
+  useEffect(() => {
+    if (ref.current && ref.current.selected !== checked) ref.current.selected = checked
+  }, [checked])
+  return (
+    <md-switch
+      ref={ref}
+      disabled={disabled}
+      onInput={(e: any) => onChange?.((e.target as MdSwitch).selected)}
+    ></md-switch>
+  )
+}
+
+// ===================== 复选框（官方 md-checkbox） =====================
+export function Checkbox({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean
+  onChange: (v: boolean) => void
+  label?: string
+  disabled?: boolean
+}) {
+  const ref = useRef<MdCheckbox>(null)
+  useEffect(() => {
+    if (ref.current && ref.current.checked !== checked) ref.current.checked = checked
+  }, [checked])
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-on-surface select-none">
+      <md-checkbox
+        ref={ref}
+        disabled={disabled}
+        onInput={(e: any) => onChange?.((e.target as MdCheckbox).checked)}
+      ></md-checkbox>
+      {label && (
+        <span className="cursor-pointer" onClick={() => onChange(!checked)}>
+          {label}
+        </span>
+      )}
+    </span>
+  )
+}
+
+// ===================== 对话框（官方 md-dialog） =====================
 export function Dialog({
   open,
   title,
@@ -143,30 +348,19 @@ export function Dialog({
   onClose: () => void
   footer?: ReactNode
 }) {
-  if (!open) return null
+  const ref = useRef<MdDialog>(null)
+  useEffect(() => {
+    const d = ref.current
+    if (!d) return
+    if (open && !d.open) d.show()
+    else if (!open && d.open) d.close()
+  }, [open])
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'var(--md-scrim)' }}
-      onClick={onClose}
-    >
-      <div
-        className="bg-surface-container-lowest shadow-lg w-full max-w-md"
-        style={{ borderRadius: 'var(--md-corner-xl)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div
-          className="px-6 pt-6 pb-2 text-lg font-medium text-on-surface"
-          style={{ fontFamily: 'inherit' }}
-        >
-          {title}
-        </div>
-        <div className="px-6 py-2 text-sm text-on-surface-variant">{children}</div>
-        {footer && (
-          <div className="px-4 py-4 flex justify-end gap-2">{footer}</div>
-        )}
-      </div>
-    </div>
+    <md-dialog ref={ref} onClose={() => onClose?.()}>
+      <div slot="headline">{title}</div>
+      <div slot="content">{children}</div>
+      <div slot="actions">{footer}</div>
+    </md-dialog>
   )
 }
 
@@ -184,27 +378,27 @@ export function ConfirmButton({
   const [open, setOpen] = useState(false)
   return (
     <>
-      <button className={className ?? 'btn-danger btn-sm'} onClick={() => setOpen(true)}>
+      <Button variant="danger" size="sm" className={className} onClick={() => setOpen(true)}>
         {label}
-      </button>
+      </Button>
       <Dialog
         open={open}
         title="确认操作"
         onClose={() => setOpen(false)}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setOpen(false)}>
+            <Button variant="outlined" onClick={() => setOpen(false)}>
               取消
-            </button>
-            <button
-              className="btn-danger"
+            </Button>
+            <Button
+              variant="danger"
               onClick={() => {
                 setOpen(false)
                 onConfirm()
               }}
             >
               确认
-            </button>
+            </Button>
           </>
         }
       >
@@ -243,73 +437,35 @@ export function PageHeader({
   )
 }
 
-// ===================== 开关（MD3） =====================
-export function Switch({
-  checked,
-  onChange,
-  disabled,
+// ===================== 空状态 =====================
+export function EmptyState({
+  title,
+  hint,
+  action,
+  icon = 'public',
 }: {
-  checked: boolean
-  onChange: (v: boolean) => void
-  disabled?: boolean
+  title: string
+  hint?: string
+  action?: ReactNode
+  icon?: string
 }) {
   return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => onChange(!checked)}
-      className="relative inline-flex items-center rounded-full transition-colors disabled:opacity-50"
-      style={{
-        width: 52,
-        height: 32,
-        background: checked ? 'var(--md-primary)' : 'var(--md-surface-variant)',
-      }}
-    >
-      <span
-        className="inline-block rounded-full shadow transition-transform duration-150"
+    <div className="flex flex-col items-center justify-center py-16 text-center">
+      <div
+        className="w-14 h-14 rounded-full flex items-center justify-center mb-3"
         style={{
-          width: 24,
-          height: 24,
-          background: 'var(--md-surface-container-lowest)',
-          transform: checked ? 'translateX(24px)' : 'translateX(4px)',
-        }}
-      />
-    </button>
-  )
-}
-
-// ===================== 复选框（MD3） =====================
-export function Checkbox({
-  checked,
-  onChange,
-  label,
-  disabled,
-}: {
-  checked: boolean
-  onChange: (v: boolean) => void
-  label?: string
-  disabled?: boolean
-}) {
-  return (
-    <label className="inline-flex items-center gap-2 text-sm text-on-surface cursor-pointer select-none">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onChange(!checked)}
-        className="flex items-center justify-center rounded-[6px] border transition-colors disabled:opacity-50"
-        style={{
-          width: 20,
-          height: 20,
-          borderColor: checked ? 'var(--md-primary)' : 'var(--md-outline)',
-          background: checked ? 'var(--md-primary)' : 'transparent',
+          background: 'var(--md-surface-container-high)',
+          color: 'var(--md-on-surface-variant)',
         }}
       >
-        {checked && <Icon name="check" size={16} className="text-on-primary" />}
-      </button>
-      {label && <span>{label}</span>}
-    </label>
+        <Icon name={icon} size={26} />
+      </div>
+      <div className="text-on-surface font-medium">{title}</div>
+      {hint && (
+        <div className="text-on-surface-variant text-sm mt-1 max-w-sm">{hint}</div>
+      )}
+      {action && <div className="mt-4">{action}</div>}
+    </div>
   )
 }
 

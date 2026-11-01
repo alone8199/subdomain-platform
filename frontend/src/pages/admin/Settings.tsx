@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, ApiClientError } from '../../api'
 import { useToast } from '../../context'
-import { PageHeader, Spinner, Switch } from '../../components/ui'
+import { PageHeader, Spinner, Switch, Button, Input } from '../../components/ui'
 
 interface Settings {
   registration_enabled: boolean
@@ -54,13 +54,14 @@ export default function AdminSettings() {
       <PageHeader
         title="系统设置"
         actions={
-          <button
-            className="btn-primary btn-sm"
+          <Button
+            variant="primary"
+            size="sm"
             disabled={saving || !dirty}
             onClick={save}
           >
             {saving ? '保存中…' : '保存'}
-          </button>
+          </Button>
         }
       />
       <div className="card p-5 max-w-lg space-y-5">
@@ -81,15 +82,13 @@ export default function AdminSettings() {
         </div>
         <hr style={{ borderColor: 'var(--md-outline-variant)' }} />
         <div>
-          <label className="label">每用户子域名数量上限</label>
-          <input
+          <Input
+            label="每用户子域名数量上限"
             type="number"
-            min={1}
-            max={1000}
-            className="input w-40"
+            className="w-40"
             value={maxSub}
-            onChange={(e) => {
-              setMaxSub(Number(e.target.value))
+            onChange={(v) => {
+              setMaxSub(Number(v))
               setDirty(true)
             }}
           />
@@ -98,15 +97,13 @@ export default function AdminSettings() {
           </div>
         </div>
         <div>
-          <label className="label">每用户每月申请次数上限</label>
-          <input
+          <Input
+            label="每用户每月申请次数上限"
             type="number"
-            min={1}
-            max={10000}
-            className="input w-40"
+            className="w-40"
             value={maxMonth}
-            onChange={(e) => {
-              setMaxMonth(Number(e.target.value))
+            onChange={(v) => {
+              setMaxMonth(Number(v))
               setDirty(true)
             }}
           />

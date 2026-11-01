@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiClientError } from '../api'
 import { useAuth, useToast } from '../context'
-import { Icon } from '../components/ui'
+import { Icon, Button, Input } from '../components/ui'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -51,36 +51,30 @@ export default function Login() {
             使用邮箱与密码登录你的账户
           </p>
           <form onSubmit={submit} className="space-y-3">
-            <div>
-              <label className="label">邮箱</label>
-              <input
-                className="input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="username"
-                required
-              />
-            </div>
-            <div>
-              <label className="label">密码</label>
-              <input
-                className="input"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-            </div>
+            <Input
+              label="邮箱"
+              type="email"
+              value={email}
+              onChange={setEmail}
+              autoComplete="username"
+              required
+            />
+            <Input
+              label="密码"
+              type="password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              required
+            />
             {err && (
               <div className="text-xs" style={{ color: 'var(--md-error)' }}>
                 {err}
               </div>
             )}
-            <button className="btn-primary w-full" disabled={loading}>
+            <Button variant="primary" type="submit" fullWidth disabled={loading}>
               {loading ? '登录中…' : '登录'}
-            </button>
+            </Button>
           </form>
           <div className="mt-4 text-xs text-on-surface-variant text-center">
             首次部署请先到 <a className="text-primary" href="/setup">/setup</a>{' '}

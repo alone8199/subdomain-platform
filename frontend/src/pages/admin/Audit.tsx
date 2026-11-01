@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { api } from '../../api'
-import { PageHeader, Spinner, EmptyState, Badge } from '../../components/ui'
+import { PageHeader, Spinner, EmptyState, Badge, Select } from '../../components/ui'
 import type { AuditLog, Zone } from '../../types'
 
 function fmt(ts: number) {
@@ -56,18 +56,24 @@ export default function AdminAudit() {
     <div>
       <PageHeader title="审计日志" desc="记录登录、申请、审批、DNS 变更、用户与根域名变更（含 root_domain 与 zone_id）" />
       <div className="card">
-        <div className="p-3 border-b border-gray-100 flex items-center gap-2 flex-wrap">
-          <select className="input w-44" value={actionFilter} onChange={(e) => setActionFilter(e.target.value)}>
-            {ACTION_OPTIONS.map((a) => (
-              <option key={a} value={a}>{a === '' ? '全部动作' : a}</option>
-            ))}
-          </select>
-          <select className="input w-48" value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)}>
-            <option value="">全部根域名</option>
-            {zones.map((z) => (
-              <option key={z.id} value={z.cloudflare_zone_id}>{z.root_domain}</option>
-            ))}
-          </select>
+        <div className="p-3 border-b flex items-center gap-2 flex-wrap" style={{ borderColor: 'var(--md-outline-variant)' }}>
+          <Select
+            label="动作"
+            className="w-44"
+            value={actionFilter}
+            onChange={setActionFilter}
+            options={ACTION_OPTIONS.map((a) => ({ value: a, label: a === '' ? '全部动作' : a }))}
+          />
+          <Select
+            label="根域名"
+            className="w-48"
+            value={zoneFilter}
+            onChange={setZoneFilter}
+            options={[
+              { value: '', label: '全部根域名' },
+              ...zones.map((z) => ({ value: z.cloudflare_zone_id, label: z.root_domain })),
+            ]}
+          />
         </div>
         {loading ? (
           <Spinner />

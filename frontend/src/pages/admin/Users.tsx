@@ -9,6 +9,9 @@ import {
   Modal,
   ConfirmButton,
   FieldError,
+  Button,
+  Input,
+  Select,
 } from '../../components/ui'
 import type { User } from '../../types'
 
@@ -107,8 +110,8 @@ export default function AdminUsers() {
     <div>
       <PageHeader title="用户管理" desc="创建用户、启用/禁用、重置密码、调整角色" />
       <div className="card">
-        <div className="p-3 border-b border-gray-100 flex justify-end">
-          <button className="btn-primary btn-sm" onClick={() => setShowAdd(true)}>创建用户</button>
+        <div className="p-3 border-b flex justify-end" style={{ borderColor: 'var(--md-outline-variant)' }}>
+          <Button variant="primary" size="sm" onClick={() => setShowAdd(true)}>创建用户</Button>
         </div>
         {loading ? (
           <Spinner />
@@ -135,15 +138,15 @@ export default function AdminUsers() {
                     <td className="td text-xs text-gray-500">{new Date(u.created_at * 1000).toLocaleDateString('zh-CN')}</td>
                     <td className="td whitespace-nowrap">
                       <div className="flex gap-1 flex-wrap">
-                        <button className="btn-secondary btn-sm" onClick={() => patchUser(u.id, { status: u.status === 'active' ? 'disabled' : 'active' })}>
+                        <Button variant="outlined" size="sm" onClick={() => patchUser(u.id, { status: u.status === 'active' ? 'disabled' : 'active' })}>
                           {u.status === 'active' ? '禁用' : '启用'}
-                        </button>
-                        <button className="btn-secondary btn-sm" onClick={() => toggleAdmin(u.id)}>
+                        </Button>
+                        <Button variant="outlined" size="sm" onClick={() => toggleAdmin(u.id)}>
                           {u.role === 'admin' ? '取消管理员' : '设为管理员'}
-                        </button>
-                        <button className="btn-secondary btn-sm" onClick={() => { setResetId(u.id); setResetPw('') }}>
+                        </Button>
+                        <Button variant="outlined" size="sm" onClick={() => { setResetId(u.id); setResetPw('') }}>
                           重置密码
-                        </button>
+                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -157,27 +160,23 @@ export default function AdminUsers() {
       <Modal open={showAdd} title="创建用户" onClose={() => setShowAdd(false)}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setShowAdd(false)}>取消</button>
-            <button className="btn-primary" onClick={addUser}>创建</button>
+            <Button variant="outlined" onClick={() => setShowAdd(false)}>取消</Button>
+            <Button variant="primary" onClick={addUser}>创建</Button>
           </>
         }
       >
         <form onSubmit={addUser} className="space-y-3">
-          <div>
-            <label className="label">邮箱</label>
-            <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">密码</label>
-            <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
-          <div>
-            <label className="label">角色</label>
-            <select className="input" value={role} onChange={(e) => setRole(e.target.value as any)}>
-              <option value="user">普通用户</option>
-              <option value="admin">管理员</option>
-            </select>
-          </div>
+          <Input label="邮箱" value={email} onChange={setEmail} />
+          <Input label="密码" type="password" value={password} onChange={setPassword} />
+          <Select
+            label="角色"
+            value={role}
+            onChange={(v) => setRole(v as 'user' | 'admin')}
+            options={[
+              { value: 'user', label: '普通用户' },
+              { value: 'admin', label: '管理员' },
+            ]}
+          />
           <FieldError msg={addErr} />
         </form>
       </Modal>
@@ -185,14 +184,13 @@ export default function AdminUsers() {
       <Modal open={!!resetId} title="重置密码" onClose={() => setResetId(null)}
         footer={
           <>
-            <button className="btn-secondary" onClick={() => setResetId(null)}>取消</button>
-            <button className="btn-primary" onClick={resetPassword}>确认</button>
+            <Button variant="outlined" onClick={() => setResetId(null)}>取消</Button>
+            <Button variant="primary" onClick={resetPassword}>确认</Button>
           </>
         }
       >
         <div>
-          <label className="label">新密码</label>
-          <input className="input" type="password" value={resetPw} onChange={(e) => setResetPw(e.target.value)} />
+          <Input label="新密码" type="password" value={resetPw} onChange={setResetPw} />
           <FieldError msg={resetErr} />
         </div>
       </Modal>

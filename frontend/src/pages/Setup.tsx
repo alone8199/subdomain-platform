@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, ApiClientError } from '../api'
 import { useToast } from '../context'
-import { Icon } from '../components/ui'
+import { Icon, Button, Input } from '../components/ui'
 
 export default function Setup() {
   const [token, setToken] = useState('')
@@ -50,17 +50,14 @@ export default function Setup() {
             需要环境变量 <code>SETUP_TOKEN</code> 才能初始化
           </p>
           <form onSubmit={submit} className="space-y-3">
-            <div>
-              <label className="label">SETUP_TOKEN</label>
-              <input
-                className="input"
-                type="password"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                placeholder="环境变量 SETUP_TOKEN 的值"
-                required
-              />
-            </div>
+            <Input
+              label="SETUP_TOKEN"
+              type="password"
+              value={token}
+              onChange={setToken}
+              placeholder="环境变量 SETUP_TOKEN 的值"
+              required
+            />
             {msg && (
               <div className="text-xs" style={{ color: 'var(--md-primary)' }}>
                 {msg}
@@ -71,9 +68,9 @@ export default function Setup() {
                 {err}
               </div>
             )}
-            <button className="btn-primary w-full" disabled={loading}>
+            <Button variant="primary" type="submit" fullWidth disabled={loading}>
               {loading ? '初始化中…' : '初始化'}
-            </button>
+            </Button>
           </form>
           <div className="mt-4 text-xs text-on-surface-variant">
             管理员邮箱与初始密码取自环境变量 ADMIN_EMAIL / ADMIN_INITIAL_PASSWORD。
