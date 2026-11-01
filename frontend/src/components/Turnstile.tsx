@@ -83,22 +83,29 @@ export function Turnstile({
 export interface TurnstileConfig {
   enabled: boolean
   siteKey: string
+  registrationEnabled: boolean
 }
 
-// 获取平台人机验证配置（未启用时组件不渲染）
+// 获取平台人机验证 / 公开注册配置
 export function useTurnstileConfig(): TurnstileConfig | null {
   const [cfg, setCfg] = useState<TurnstileConfig | null>(null)
   useEffect(() => {
     api
-      .get<{ enabled: boolean; site_key: string }>('/api/auth/turnstile')
+      .get<{
+        enabled: boolean
+        site_key: string
+        registration_enabled: boolean
+      }>('/api/auth/turnstile')
       .then((r) =>
-        setCfg(
-          r.enabled && r.site_key
-            ? { enabled: true, siteKey: r.site_key }
-            : { enabled: false, siteKey: '' },
-        ),
+        setCfg({
+          enabled: r.enabled && !!r.site_key,
+          siteKey: r.site_key || '',
+          registrationEnabled: !!r.registration_enabled,
+        }),
       )
-      .catch(() => setCfg({ enabled: false, siteKey: '' }))
+      .catch(() =>
+        setCfg({ enabled: false, siteKey: '', registrationEnabled: false }),
+      )
   }, [])
   return cfg
 }

@@ -74,10 +74,18 @@ authRoutes.post('/setup', csrfMiddleware, async (c) => {
   return ok(c, { initialized: true }, 201)
 })
 
-// Turnstile 公开配置（前端据此渲染人机验证组件）
+// 公开配置（前端据此渲染人机验证组件 / 注册入口）
 authRoutes.get('/turnstile', async (c) => {
   const cfg = await getTurnstileConfig(c.env)
-  return ok(c, { enabled: cfg.enabled, site_key: cfg.enabled ? cfg.siteKey : '' })
+  const reg = await db(c.env).get<{ value: string }>(
+    'SELECT value FROM settings WHERE key = ?',
+    'registration_enabled',
+  )
+  return ok(c, {
+    enabled: cfg.enabled,
+    site_key: cfg.enabled ? cfg.siteKey : '',
+    registration_enabled: reg?.value === '1',
+  })
 })
 
 // 公开注册（受系统设置开关控制）。管理员也可在后台直接创建用户。

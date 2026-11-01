@@ -192,7 +192,7 @@ async function handleApi(req, res, url) {
       return ok(res, sanitizeUser(u))
     }
     if (seg[2] === 'turnstile' && method === 'GET') {
-      return ok(res, { enabled: false, site_key: '' })
+      return ok(res, { enabled: false, site_key: '', registration_enabled: registrationEnabled })
     }
     if (seg[2] === 'logout' && method === 'POST') {
       const t = getCookie(req, 'session')
