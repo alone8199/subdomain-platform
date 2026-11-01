@@ -24,7 +24,8 @@ export async function rateLimit(
   if (!w || w.reset < now) {
     const next: Window = { count: 1, reset: now + windowSec * 1000 }
     await c.env.KV.put(key, JSON.stringify(next), {
-      expirationTtl: windowSec + 5,
+      // KV 要求 expirationTtl ≥ 60
+      expirationTtl: Math.max(60, windowSec + 5),
     })
     return true
   }
@@ -33,7 +34,8 @@ export async function rateLimit(
   }
   const next: Window = { count: w.count + 1, reset: w.reset }
   await c.env.KV.put(key, JSON.stringify(next), {
-    expirationTtl: Math.max(1, Math.ceil((w.reset - now) / 1000) + 5),
+    // KV 要求 expirationTtl ≥ 60（剩余窗口不足 60 时必须兜底，否则 PUT 报 400）
+    expirationTtl: Math.max(60, Math.ceil((w.reset - now) / 1000) + 5),
   })
   return true
 }

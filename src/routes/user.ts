@@ -84,7 +84,7 @@ userRoutes.get('/subdomains', async (c) => {
     ' ORDER BY created_at DESC'
   const rows = await db(c.env).all<any>(
     sql,
-    zoneId ? [user.id, zoneId] : [user.id],
+    ...(zoneId ? [user.id, zoneId] : [user.id]),
   )
   return ok(c, rows)
 })

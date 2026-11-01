@@ -92,11 +92,11 @@ export class CloudflareApi {
 
   // 通过根域名查询 Zone ID，并校验 token 权限
   async getZoneByName(domain: string): Promise<CfZone> {
-    const data = await this.request<{ result: CfZone[] }>(
+    const data = await this.request<CfZone[]>(
       'GET',
       `/zones?name=${encodeURIComponent(domain)}&status=active`,
     )
-    const zone = data.result?.find(
+    const zone = data.find(
       (z) => z.name.toLowerCase() === domain.toLowerCase(),
     )
     if (!zone) {
@@ -113,11 +113,11 @@ export class CloudflareApi {
     zoneId: string,
     name: string,
   ): Promise<CfDnsRecord[]> {
-    const data = await this.request<{ result: CfDnsRecord[] }>(
+    const data = await this.request<CfDnsRecord[]>(
       'GET',
       `/zones/${zoneId}/dns_records?name=${encodeURIComponent(name)}`,
     )
-    return data.result ?? []
+    return data ?? []
   }
 
   // 创建 DNS 记录

@@ -267,7 +267,7 @@ adminRoutes.get('/approvals', async (c) => {
     ' ORDER BY created_at ASC'
   const rows = await db(c.env).all<any>(
     sql,
-    zoneId ? ['pending', zoneId] : ['pending'],
+    ...(zoneId ? ['pending', zoneId] : ['pending']),
   )
   return ok(c, rows)
 })
