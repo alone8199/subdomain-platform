@@ -18,6 +18,8 @@ import { getCookie } from 'hono/cookie'
 import { audit } from '../utils/audit'
 import { newId, nowSec } from '../utils/id'
 import { clientIp } from '../utils/ip'
+import { requireTurnstile, getTurnstileConfig } from '../services/turnstile'
+import { ApiError } from '../utils/error'
 
 export const authRoutes = new Hono<AppEnv>()
 
@@ -72,6 +74,12 @@ authRoutes.post('/setup', csrfMiddleware, async (c) => {
   return ok(c, { initialized: true }, 201)
 })
 
+// Turnstile 公开配置（前端据此渲染人机验证组件）
+authRoutes.get('/turnstile', async (c) => {
+  const cfg = await getTurnstileConfig(c.env)
+  return ok(c, { enabled: cfg.enabled, site_key: cfg.enabled ? cfg.siteKey : '' })
+})
+
 // 公开注册（受系统设置开关控制）。管理员也可在后台直接创建用户。
 authRoutes.post('/register', csrfMiddleware, async (c) => {
   const reg = await db(c.env).get<{ value: string }>(
@@ -81,9 +89,16 @@ authRoutes.post('/register', csrfMiddleware, async (c) => {
   if (!reg || reg.value !== '1') {
     return fail(c, 'REGISTRATION_CLOSED', '公开注册已关闭', 403)
   }
-  const parsed = registerSchema.safeParse(await c.req.json().catch(() => ({})))
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = registerSchema.safeParse(body)
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
+  }
+  try {
+    await requireTurnstile(c.env, body?.cf_turnstile_token, clientIp(c))
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'TURNSTILE_FAILED', '人机验证未通过', 422)
   }
   const { username, password } = parsed.data
   const exists = await getUserByName(db(c.env), username)
@@ -114,9 +129,16 @@ authRoutes.post('/register', csrfMiddleware, async (c) => {
 
 // 登录（带 KV 限流 + CSRF）
 authRoutes.post('/login', loginRateLimit, csrfMiddleware, async (c) => {
-  const parsed = loginSchema.safeParse(await c.req.json().catch(() => ({})))
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = loginSchema.safeParse(body)
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
+  }
+  try {
+    await requireTurnstile(c.env, body?.cf_turnstile_token, clientIp(c))
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'TURNSTILE_FAILED', '人机验证未通过', 422)
   }
   const { username, password } = parsed.data
   const user = await getUserByName(db(c.env), username)

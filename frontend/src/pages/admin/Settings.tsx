@@ -9,6 +9,9 @@ interface Settings {
   max_applications_per_month: number
   default_auto_approve: boolean
   default_zone_ttl: number
+  turnstile_enabled: boolean
+  turnstile_site_key: string
+  turnstile_has_secret?: boolean
 }
 
 export default function AdminSettings() {
@@ -20,6 +23,10 @@ export default function AdminSettings() {
   const [maxMonth, setMaxMonth] = useState(30)
   const [dAuto, setDAuto] = useState(false)
   const [dTtl, setDTtl] = useState(300)
+  const [tsEnabled, setTsEnabled] = useState(false)
+  const [tsSiteKey, setTsSiteKey] = useState('')
+  const [tsSecretKey, setTsSecretKey] = useState('')
+  const [tsHasSecret, setTsHasSecret] = useState(false)
   const [dirty, setDirty] = useState(false)
 
   useEffect(() => {
@@ -31,6 +38,9 @@ export default function AdminSettings() {
         setMaxMonth(s.max_applications_per_month)
         setDAuto(s.default_auto_approve)
         setDTtl(s.default_zone_ttl)
+        setTsEnabled(s.turnstile_enabled)
+        setTsSiteKey(s.turnstile_site_key)
+        setTsHasSecret(!!s.turnstile_has_secret)
       })
       .catch(() => {})
       .finally(() => setLoading(false))
@@ -45,7 +55,12 @@ export default function AdminSettings() {
         max_applications_per_month: Number(maxMonth),
         default_auto_approve: dAuto,
         default_zone_ttl: Number(dTtl),
+        turnstile_enabled: tsEnabled,
+        turnstile_site_key: tsSiteKey.trim(),
+        ...(tsSecretKey.trim() ? { turnstile_secret_key: tsSecretKey.trim() } : {}),
       })
+      setTsHasSecret((h) => h || !!tsSecretKey.trim())
+      setTsSecretKey('')
       toast('设置已保存', 'success')
       setDirty(false)
     } catch (e) {
@@ -119,6 +134,48 @@ export default function AdminSettings() {
             新增根域名时解析记录的默认 TTL（60-86400），每个根域名可在编辑中单独修改。
           </div>
         </div>
+        <hr style={{ borderColor: 'var(--ui-outline-variant)' }} />
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm">
+            <div className="font-medium text-on-surface">人机验证（Cloudflare Turnstile）</div>
+            <div className="text-xs text-on-surface-variant mt-0.5">
+              开启后，登录、注册、申请子域名、添加解析记录需先通过人机验证。
+            </div>
+          </div>
+          <Switch
+            checked={tsEnabled}
+            onChange={(v) => {
+              setTsEnabled(v)
+              setDirty(true)
+            }}
+          />
+        </div>
+        {tsEnabled && (
+          <div className="space-y-3 rounded-md p-3" style={{ background: 'var(--ui-surface-container)' }}>
+            <Input
+              label="Site Key（公开）"
+              value={tsSiteKey}
+              onChange={(v) => {
+                setTsSiteKey(v)
+                setDirty(true)
+              }}
+              placeholder="0x4AAAAAAA..."
+            />
+            <Input
+              label={tsHasSecret ? 'Secret Key（已保存，输入新值可覆盖）' : 'Secret Key'}
+              type="password"
+              value={tsSecretKey}
+              onChange={(v) => {
+                setTsSecretKey(v)
+                setDirty(true)
+              }}
+              placeholder={tsHasSecret ? '••••••••' : '0x4AAAAAAA...'}
+            />
+            <div className="text-xs text-on-surface-variant">
+              在 Cloudflare 控制台 → Turnstile 中创建 Widget 获取密钥，域名需填本站域名（如 panel.neob.asia）。
+            </div>
+          </div>
+        )}
         <hr style={{ borderColor: 'var(--ui-outline-variant)' }} />
         <div>
           <Input

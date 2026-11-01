@@ -191,6 +191,9 @@ async function handleApi(req, res, url) {
       audit.unshift(mkAudit('login', u.username, 'success', '演示登录', getCookie(req, 'cf-ip') || '127.0.0.1'))
       return ok(res, sanitizeUser(u))
     }
+    if (seg[2] === 'turnstile' && method === 'GET') {
+      return ok(res, { enabled: false, site_key: '' })
+    }
     if (seg[2] === 'logout' && method === 'POST') {
       const t = getCookie(req, 'session')
       if (t) sessions.delete(t)

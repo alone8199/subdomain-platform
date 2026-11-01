@@ -536,6 +536,9 @@ adminRoutes.get('/settings', async (c) => {
     ['max_applications_per_month', '30'],
     ['default_auto_approve', '0'],
     ['default_zone_ttl', '300'],
+    ['turnstile_enabled', '0'],
+    ['turnstile_site_key', ''],
+    ['turnstile_secret_key', ''],
   ] as const
   const out: Record<string, string | number | boolean> = {}
   for (const [key, def] of keys) {
@@ -550,6 +553,9 @@ adminRoutes.get('/settings', async (c) => {
   out.max_subdomains_per_user = Number(out.max_subdomains_per_user)
   out.max_applications_per_month = Number(out.max_applications_per_month)
   out.default_zone_ttl = Number(out.default_zone_ttl)
+  out.turnstile_enabled = out.turnstile_enabled === '1'
+  out.turnstile_has_secret = Boolean(out.turnstile_secret_key)
+  delete out.turnstile_secret_key // Secret Key 不回传给前端
   return ok(c, out)
 })
 
@@ -586,6 +592,15 @@ adminRoutes.put('/settings', csrfMiddleware, async (c) => {
   }
   if (parsed.data.default_zone_ttl !== undefined) {
     updates.push(['default_zone_ttl', String(parsed.data.default_zone_ttl), `新根域名默认TTL=${parsed.data.default_zone_ttl}`])
+  }
+  if (parsed.data.turnstile_enabled !== undefined) {
+    updates.push(['turnstile_enabled', parsed.data.turnstile_enabled ? '1' : '0', `人机验证=${parsed.data.turnstile_enabled ? '开' : '关'}`])
+  }
+  if (parsed.data.turnstile_site_key !== undefined) {
+    updates.push(['turnstile_site_key', parsed.data.turnstile_site_key, '人机验证SiteKey更新'])
+  }
+  if (parsed.data.turnstile_secret_key) {
+    updates.push(['turnstile_secret_key', parsed.data.turnstile_secret_key, '人机验证SecretKey更新'])
   }
   for (const [key, value, detail] of updates) {
     await db(c.env).run(

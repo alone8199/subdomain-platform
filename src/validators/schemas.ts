@@ -140,4 +140,7 @@ export const settingsUpdateSchema = z.object({
   max_applications_per_month: z.number().int().min(1).max(10000).optional(),
   default_auto_approve: z.boolean().optional(),
   default_zone_ttl: z.number().int().min(60).max(86400).optional(),
+  turnstile_enabled: z.boolean().optional(),
+  turnstile_site_key: z.string().trim().max(200).optional(),
+  turnstile_secret_key: z.string().trim().max(200).optional(),
 })

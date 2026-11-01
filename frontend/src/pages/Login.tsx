@@ -3,12 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { api, ApiClientError } from '../api'
 import { useAuth, useToast } from '../context'
 import { Icon, Button, Input } from '../components/ui'
+import { Turnstile, useTurnstileConfig } from '../components/Turnstile'
 
 export default function Login() {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [tsToken, setTsToken] = useState('')
+  const [tsKey, setTsKey] = useState(0) // 变更可重置验证组件
+  const tsCfg = useTurnstileConfig()
   const { refresh } = useAuth()
   const { toast } = useToast()
   const navigate = useNavigate()
@@ -18,7 +22,12 @@ export default function Login() {
     setErr('')
     setLoading(true)
     try {
-      await api.post('/api/auth/login', { username, password })
+      await api.post('/api/auth/login', {
+        username,
+        password,
+        cf_turnstile_token: tsToken || undefined,
+      })
+      if (tsCfg?.enabled) setTsKey((k) => k + 1) // 用后重置，支持下次登录
       await refresh()
       toast('登录成功', 'success')
       const u = await api.get<{ role: string }>('/api/auth/me')
@@ -67,12 +76,24 @@ export default function Login() {
               autoComplete="current-password"
               required
             />
+            {tsCfg?.enabled && (
+              <Turnstile
+                key={tsKey}
+                siteKey={tsCfg.siteKey}
+                onToken={setTsToken}
+              />
+            )}
             {err && (
               <div className="text-xs" style={{ color: 'var(--ui-error)' }}>
                 {err}
               </div>
             )}
-            <Button variant="primary" type="submit" fullWidth disabled={loading}>
+            <Button
+              variant="primary"
+              type="submit"
+              fullWidth
+              disabled={loading || (tsCfg?.enabled === true && !tsToken)}
+            >
               {loading ? '登录中…' : '登录'}
             </Button>
           </form>

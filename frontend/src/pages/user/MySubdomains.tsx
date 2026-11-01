@@ -13,6 +13,7 @@ import {
   Input,
   Select,
 } from '../../components/ui'
+import { Turnstile, useTurnstileConfig } from '../../components/Turnstile'
 import type { Subdomain, ApplyZone, DnsRecord } from '../../types'
 
 function fmt(ts: number | null) {
@@ -49,6 +50,9 @@ export default function MySubdomains() {
   const [formContent, setFormContent] = useState('')
   const [formTtl, setFormTtl] = useState('300')
   const [formErr, setFormErr] = useState<string | null>(null)
+  const [tsToken, setTsToken] = useState('')
+  const [tsKey, setTsKey] = useState(0)
+  const tsCfg = useTurnstileConfig()
   const [formSaving, setFormSaving] = useState(false)
 
   const load = useCallback(async () => {
@@ -126,6 +130,7 @@ export default function MySubdomains() {
     setFormContent('')
     setFormTtl('300')
     setFormErr(null)
+    setTsToken('')
   }
 
   const startEditRecord = (r: DnsRecord) => {
@@ -159,7 +164,9 @@ export default function MySubdomains() {
           record_type: formType,
           content: formContent.trim(),
           ttl: ttlNum,
+          cf_turnstile_token: tsToken || undefined,
         })
+        if (tsCfg?.enabled) setTsKey((k) => k + 1)
         toast('解析记录已添加并同步 DNS', 'success')
       }
       resetForm()
@@ -373,9 +380,16 @@ export default function MySubdomains() {
                 inputMode="numeric"
               />
             </div>
+            {!formRecId && tsCfg?.enabled && (
+              <Turnstile key={tsKey} siteKey={tsCfg.siteKey} onToken={setTsToken} />
+            )}
             <FieldError msg={formErr} />
             <div className="flex gap-2">
-              <Button variant="primary" onClick={submitRecord} disabled={formSaving}>
+              <Button
+                variant="primary"
+                onClick={submitRecord}
+                disabled={formSaving || (!formRecId && tsCfg?.enabled === true && !tsToken)}
+              >
                 {formSaving ? '同步中…' : formRecId ? '保存修改' : '添加记录'}
               </Button>
               {formRecId && (

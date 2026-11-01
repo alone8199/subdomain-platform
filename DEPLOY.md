@@ -135,6 +135,10 @@ npx wrangler tail        # 实时查看线上日志，排错必备
 npx wrangler d1 execute subdomain_platform --remote --command "SELECT COUNT(*) FROM subdomains"  # 线上查询
 ```
 
+## 人机验证（可选）
+
+在 Cloudflare 控制台 → Turnstile 创建一个 Widget（域名填面板域名），然后在后台「系统设置 → 人机验证」打开开关并填入 Site Key / Secret Key 即可。启用后登录、注册、申请子域名、添加解析记录都会先过人机验证。
+
 ## 常见问题
 
 **部署时报 `database_id` 无效**：确认第 3 步创建 D1 成功且 ID 完整粘贴（不要带引号外多余空格）。

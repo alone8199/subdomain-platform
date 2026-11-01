@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { api, ApiClientError } from '../../api'
 import { useToast } from '../../context'
 import { PageHeader, FieldError, Badge, Button, Input, Select } from '../../components/ui'
+import { Turnstile, useTurnstileConfig } from '../../components/Turnstile'
 import type { ApplyZone } from '../../types'
 
 function validatePrefix(
@@ -37,6 +38,9 @@ export default function UserApply() {
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<Record<string, string>>({})
   const [result, setResult] = useState<{ full_domain: string; status: string } | null>(null)
+  const [tsToken, setTsToken] = useState('')
+  const [tsKey, setTsKey] = useState(0)
+  const tsCfg = useTurnstileConfig()
 
   useEffect(() => {
     api
@@ -95,8 +99,13 @@ export default function UserApply() {
           expires_at: expiresAt
             ? Math.floor(new Date(expiresAt).getTime() / 1000)
             : null,
+          cf_turnstile_token: tsToken || undefined,
         },
       )
+      if (tsCfg?.enabled) {
+        setTsToken('')
+        setTsKey((k) => k + 1)
+      }
       setResult(r)
       toast('申请已提交并自动开通', 'success')
       setPrefix('')
@@ -226,7 +235,15 @@ export default function UserApply() {
             </div>
           )}
 
-          <Button variant="primary" type="submit" disabled={loading}>
+          {tsCfg?.enabled && (
+            <Turnstile key={tsKey} siteKey={tsCfg.siteKey} onToken={setTsToken} />
+          )}
+
+          <Button
+            variant="primary"
+            type="submit"
+            disabled={loading || (tsCfg?.enabled === true && !tsToken)}
+          >
             {loading ? '提交中…' : '提交申请'}
           </Button>
         </form>

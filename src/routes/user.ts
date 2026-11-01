@@ -22,6 +22,7 @@ import {
 import { verifyPassword, generateSalt, hashPassword } from '../auth/password'
 import { audit } from '../utils/audit'
 import { clientIp } from '../utils/ip'
+import { requireTurnstile } from '../services/turnstile'
 import { getUserById } from '../db'
 
 export const userRoutes = new Hono<AppEnv>()
@@ -50,9 +51,8 @@ userRoutes.post(
   csrfMiddleware,
   async (c) => {
     const user = c.get('user')
-    const parsed = subdomainApplySchema.safeParse(
-      await c.req.json().catch(() => ({})),
-    )
+    const body = await c.req.json().catch(() => ({}))
+    const parsed = subdomainApplySchema.safeParse(body)
     if (!parsed.success) {
       return fail(
         c,
@@ -60,6 +60,12 @@ userRoutes.post(
         parsed.error.issues[0]?.message ?? '参数错误',
         422,
       )
+    }
+    try {
+      await requireTurnstile(c.env, body?.cf_turnstile_token, clientIp(c))
+    } catch (e) {
+      if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+      return fail(c, 'TURNSTILE_FAILED', '人机验证未通过', 422)
     }
     try {
       const sub = await applySubdomain(c.env, c, user.id, parsed.data)
@@ -197,11 +203,16 @@ userRoutes.get('/subdomains/:id/records', async (c) => {
 // 添加解析记录：name 留空 = 根解析（test.neob.asia 本身）；name 填 www = www.test.neob.asia
 userRoutes.post('/subdomains/:id/records', csrfMiddleware, async (c) => {
   const user = c.get('user')
-  const parsed = recordCreateSchema.safeParse(
-    await c.req.json().catch(() => ({})),
-  )
+  const body = await c.req.json().catch(() => ({}))
+  const parsed = recordCreateSchema.safeParse(body)
   if (!parsed.success) {
     return fail(c, 'INVALID_INPUT', parsed.error.issues[0]?.message ?? '参数错误', 422)
+  }
+  try {
+    await requireTurnstile(c.env, body?.cf_turnstile_token, clientIp(c))
+  } catch (e) {
+    if (e instanceof ApiError) return fail(c, e.code, e.message, e.status)
+    return fail(c, 'TURNSTILE_FAILED', '人机验证未通过', 422)
   }
   try {
     const rec = await addRecord(c.env, c, user.id, c.req.param('id'), parsed.data)
