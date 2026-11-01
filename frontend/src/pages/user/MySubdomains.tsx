@@ -28,7 +28,6 @@ export default function MySubdomains() {
   const [editId, setEditId] = useState('')
   const [editTarget, setEditTarget] = useState('')
   const [editTtl, setEditTtl] = useState('')
-  const [editProxied, setEditProxied] = useState(false)
   const [editRecType, setEditRecType] = useState('')
   const [editErr, setEditErr] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -81,7 +80,6 @@ export default function MySubdomains() {
     setEditId(s.id)
     setEditTarget(s.target)
     setEditTtl(String(s.ttl))
-    setEditProxied(s.proxied === 1)
     setEditRecType(s.record_type)
     setEditErr(null)
   }
@@ -98,7 +96,6 @@ export default function MySubdomains() {
       await api.put(`/api/user/subdomains/${editId}`, {
         target: editTarget.trim(),
         ttl: ttlNum,
-        proxied: editProxied,
       })
       toast('已保存并同步 DNS', 'success')
       setEditId('')
@@ -231,19 +228,6 @@ export default function MySubdomains() {
               inputMode="numeric"
             />
           </div>
-          {editRecType !== 'TXT' && (
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                checked={editProxied}
-                onChange={(e) => setEditProxied(e.target.checked)}
-              />
-              启用 Cloudflare 代理（橙色云）
-            </label>
-          )}
-          {editRecType === 'TXT' && (
-            <div className="text-xs text-gray-400">TXT 记录不支持代理。</div>
-          )}
           <FieldError msg={editErr} />
         </div>
       </Modal>

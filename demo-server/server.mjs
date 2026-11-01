@@ -86,7 +86,7 @@ function mkSub(prefix, root, zoneId, type, target, userId, status, createdAt, ex
   return {
     id: randomUUID(), user_id: userId, zone_id: zoneId, root_domain: root, prefix,
     full_domain: `${prefix}.${root}`, record_type: type, target, ttl: zone.default_ttl,
-    proxied: type === 'CNAME' ? 1 : 0, status,
+    status,
     dns_record_id: status === 'active' ? rid() : null,
     cloudflare_zone_id: zone.cloudflare_zone_id,
     expires_at: expiresAt, error_message: errorMessage, reject_reason: rejectReason,
@@ -267,7 +267,6 @@ async function handleApi(req, res, url) {
         const b = await readBody(req)
         if (b.target != null) sub.target = b.target
         if (b.ttl != null) sub.ttl = b.ttl
-        if (b.proxied != null) sub.proxied = b.proxied ? 1 : 0
         sub.updated_at = now()
         return ok(res, sub)
       }
@@ -396,7 +395,6 @@ async function handleApi(req, res, url) {
         const b = await readBody(req)
         if (b.target != null) s.target = b.target
         if (b.ttl != null) s.ttl = b.ttl
-        if (b.proxied != null) s.proxied = b.proxied ? 1 : 0
         s.updated_at = now()
         audit.unshift(mkAudit('dns_update', s.full_domain, 'success', '更新 DNS 记录', '127.0.0.1', s.root_domain, s.cloudflare_zone_id))
         return ok(res, s)

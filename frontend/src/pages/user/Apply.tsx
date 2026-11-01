@@ -33,7 +33,6 @@ export default function UserApply() {
   const [recordType, setRecordType] = useState('CNAME')
   const [target, setTarget] = useState('')
   const [ttl, setTtl] = useState<number>(300)
-  const [proxied, setProxied] = useState(false)
   const [expiresAt, setExpiresAt] = useState('')
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState<Record<string, string>>({})
@@ -58,7 +57,6 @@ export default function UserApply() {
   const allowedTypes = selectedZone
     ? selectedZone.allowed_types.split(',').map((t) => t.trim())
     : []
-  const canProxy = ['A', 'AAAA', 'CNAME'].includes(recordType)
   const prefixCheck = validatePrefix(prefix, selectedZone)
 
   const onZoneChange = (id: string) => {
@@ -94,7 +92,6 @@ export default function UserApply() {
           record_type: recordType,
           target: target.trim(),
           ttl,
-          proxied: canProxy ? proxied : false,
           expires_at: expiresAt
             ? Math.floor(new Date(expiresAt).getTime() / 1000)
             : null,
@@ -104,7 +101,6 @@ export default function UserApply() {
       toast('申请已提交并自动开通', 'success')
       setPrefix('')
       setTarget('')
-      setProxied(false)
       setExpiresAt('')
     } catch (e) {
       if (e instanceof ApiClientError) {
@@ -232,19 +228,6 @@ export default function UserApply() {
               }
             />
             <FieldError msg={err.target} />
-          </div>
-
-          <div className="flex items-center gap-4">
-            {canProxy && (
-              <label className="flex items-center gap-2 text-sm text-on-surface">
-                <input
-                  type="checkbox"
-                  checked={proxied}
-                  onChange={(e) => setProxied(e.target.checked)}
-                />
-                启用 Cloudflare 代理（Proxied）
-              </label>
-            )}
           </div>
 
           <div>
